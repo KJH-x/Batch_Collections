@@ -1,3 +1,9 @@
+# encoding=utf-8
+'''
+Filename :扫描二维码_scan_QRcode.py
+Datatime :2022/11/30
+Author :KJH-x
+'''
 import ctypes
 import datetime
 import os

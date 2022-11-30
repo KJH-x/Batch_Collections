@@ -1,9 +1,14 @@
-# Url Converter HEX standard
+# encoding=utf-8
+'''
+Filename :Url2HEX网址中文转换器.py
+Datatime :2022/11/30
+Author :KJH-x
+'''
 from urllib.parse import quote
 import string
 import pyperclip
 # Vlist = []
-# contentDir = "https://lexue.bit.edu.cn/pluginfile.php/583275/mod_resource/content/0/"
+# contentDir = ""
 # downloadlink = []
 # clipboard = ""
 # for v in Vlist:

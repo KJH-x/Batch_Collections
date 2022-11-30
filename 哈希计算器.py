@@ -1,11 +1,9 @@
 # encoding=utf-8
-"""
-Filename :hash_multi.py
-Description :N/A
+'''
+Filename :哈希计算器.py
 Datatime :2022/09/08
-Author :KJH
-Version :v1.0
-"""
+Author :KJH-x
+'''
 from time import localtime, strftime
 import zlib
 import hashlib

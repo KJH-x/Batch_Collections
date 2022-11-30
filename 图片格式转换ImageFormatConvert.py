@@ -1,3 +1,9 @@
+# encoding=utf-8
+'''
+Filename :图片格式转换ImageFormatConvert.py
+Datatime :2022/11/30
+Author :KJH-x
+'''
 import pillow_avif
 from PIL import Image
 # 必须先安装pillow-avif-plugin才能使用

@@ -1,9 +1,17 @@
+# encoding=utf-8
+'''
+Filename :生成二维码_make_QRcode.py
+Datatime :2022/11/30
+Author :KJH-x
+'''
 import sys
 from traceback import print_exc
 import pyperclip
 import os
 import qrcode
 import datetime
+
+
 name = datetime.datetime.now().strftime("%y-%m-%d_%H-%M-%S")
 SAVE_PATH = ".\\"
 os.chdir(SAVE_PATH)
