@@ -1,7 +1,7 @@
 # encoding=utf-8
 '''
 Filename :小鸟五小时计算.py
-Datatime :2022/11/30
+Datatime :2022/12/02
 Author :KJH-x
 '''
 from time import strftime

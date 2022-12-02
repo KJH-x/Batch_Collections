@@ -1,7 +1,7 @@
 # encoding=utf-8
 '''
 Filename :生成二维码_make_QRcode.py
-Datatime :2022/11/30
+Datatime :2022/12/02
 Author :KJH-x
 '''
 import sys
@@ -12,11 +12,13 @@ import qrcode
 import datetime
 
 
-name = datetime.datetime.now().strftime("%y-%m-%d_%H-%M-%S")
-SAVE_PATH = ".\\"
-os.chdir(SAVE_PATH)
+name = "QR_maker_"+datetime.datetime.now().strftime("%y-%m-%d_%H-%M-%S")
+SAVE_PATH = ".\\QR_maker\\"
+os.chdir(".\\")
 os.system("chcp 65001")
 para = sys.argv
+if not os.path.exists(SAVE_PATH):
+    os.mkdir(SAVE_PATH)
 
 try:
     if len(para) > 1 and para[1] == "--request_name":
@@ -29,7 +31,7 @@ try:
     qr.add_data(content)
     qr.make(True)
     img = qr.make_image()
-    img.save(".\\"+name+".png")
+    img.save(SAVE_PATH+name+".png")
 except Exception:
     print_exc()
-    # input()
+    input()
