@@ -14,7 +14,8 @@ import datetime
 
 name = "QR_maker_"+datetime.datetime.now().strftime("%y-%m-%d_%H-%M-%S")
 SAVE_PATH = ".\\QR_maker\\"
-os.chdir(".\\")
+string = sys.argv[0][0:sys.argv[0].rfind("\\")]
+os.chdir(sys.argv[0][0:sys.argv[0].rfind("\\")])
 os.system("chcp 65001")
 para = sys.argv
 if not os.path.exists(SAVE_PATH):
@@ -32,6 +33,7 @@ try:
     qr.make(True)
     img = qr.make_image()
     img.save(SAVE_PATH+name+".png")
+    print("Success!Exiting")
 except Exception:
     print_exc()
     input()
