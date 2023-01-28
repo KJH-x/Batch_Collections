@@ -82,7 +82,7 @@ def hash_value(file_name: str, block_size: int, file_size: int):
 
 def fdata(data: int,
           cal_base=1024, show_base=1000, baselevel=0,
-          suffix="b", format=1):
+          suffix="b", format=1) -> str:
     """
     data: the number to process
     base: base for proccesssing
@@ -92,6 +92,7 @@ def fdata(data: int,
     symbols = ("k", "M", "G", "T", "P", "E")
     prefix = {}
     show_scale = {}
+    returnS = ""
     data *= pow(cal_base, baselevel)
     for i, p_index in enumerate(symbols):
         prefix[p_index] = pow(cal_base, i+1)
