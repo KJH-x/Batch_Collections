@@ -4,7 +4,11 @@ Filename :图片格式转换ImageFormatConvert.py
 Datatime :2022/11/30
 Author :KJH-x
 '''
-import pillow_avif
+try:
+    import pillow_avif
+except ImportError:
+    pass
+
 from PIL import Image
 # 必须先安装pillow-avif-plugin才能使用
 # pip install pillow-avif-plugin
@@ -38,22 +42,30 @@ def convert_img(from_type: str, to_type: str, file_list: list) -> bool:
         # 建议使用完整路径
         from_type = from_type.lower()
         to_type = to_type.lower()
+        if to_type=="base64":
+            import base64
+            for file_name in file_list:
+                file_name = str(file_name)
+                with open(file_name,"rb")as OriginalPicture:
+                    code = str(base64.b64encode(OriginalPicture.read()).decode("utf8"))
+                    pyperclip.copy(code)
 
-        for file_name in file_list:
-            file_name = str(file_name)
-            try:
-                Image.open(file_name).save(
-                    file_name.replace(from_type, to_type), to_type.upper())
-            except Exception:
-                print(f"[Error]Cannot open {file_name} as an image, skipped")
-        return 1
+        else:
+            for file_name in file_list:
+                file_name = str(file_name)
+                try:
+                    Image.open(file_name).save(
+                        file_name.replace(from_type, to_type), to_type.upper())
+                except Exception:
+                    print(f"[Error]Cannot open {file_name} as an image, skipped")
+        return True
     except Exception:
         print("Unknown Error")
-        return 0
-
-
+        return False
+    
+    
 file_list = clipboard_analyse()
-ft = ""
+FileType = ""
 if file_list != []:
     ftl = []
     print("[INFO]Clipboard Work File Found:")
@@ -65,27 +77,29 @@ if file_list != []:
             ]).lower()
         )
     print(f"[INFO]Total {len(file_list)} file(s)")
-    if len(set(ftl)) != 1:
-        ft = input("[REQUEST INPUT]Input File Type:\n")
-    else:
-        ft = str(ftl[0])
 
+    if len(set(ftl)) != 1:
+        FileType = input("[REQUEST INPUT]Input File Type:\n")
+
+    else:
+        FileType = str(ftl[0])
 
 else:
-    path = (input("[REQUEST INPUT]Drag File or Paste the path:\n"))
-    ft = str(path[
+    path = (input("[REQUEST INPUT] Drag File or Paste the path:\n")).replace(
+        "\"", "")
+
+    FileType = str(path[
         str(path).rfind(".")+1:
-        str(path).rfind("\"")
     ]).lower()
     file_list.append(path.replace("\"", ""))
 
 
-print(f"[INFO]Input File Type: {ft}")
+print(f"[INFO]Input File Type: {FileType}")
 print(30*"*")
 
 tt = input("[REQUEST INPUT]Output File Type:\n")
 
-if convert_img(ft, tt, file_list) != 0:
+if convert_img(FileType, tt, file_list) != 0:
     input("[INFO]Done, hit Enter to exit")
 else:
     input("[ERROR]Error occur")
