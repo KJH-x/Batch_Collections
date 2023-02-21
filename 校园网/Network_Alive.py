@@ -11,9 +11,10 @@ debug = 0
 if not debug:
     os.system("")
 
-TLF = "%H:%M:%S.%f"
-def report_time()->str:
-    return datetime.now().strftime(TLF)
+
+def report_time() -> str:
+    return datetime.now().strftime("%H:%M:%S.%f")
+
 
 while 1:
     try:
@@ -28,7 +29,7 @@ while 1:
             os.system(f"python {sys.path[0]}\\AIO_login.py -a login")
             continue
         for line in reply_detail:
-            line=str(line)
+            line = str(line)
             if "loss" in line:
                 print(
                     f"[INFO][{report_time()}] string \"loss\" found in line{line.index('loss')}")
@@ -36,16 +37,19 @@ while 1:
                     print("[WARNING] Low connectivity, ReLogin...")
                     os.popen("python -m 10_0_0_55 login")
                     try:
-                        os.system(f"python {sys.path[0]}\\AIO_login.py -a logout")
+                        os.system(
+                            f"python {sys.path[0]}\\AIO_login.py -a logout")
                         print(
                             f"[INFO][{report_time()}] Command Sent, sleep for command interval")
                         sleep(5)
-                        print(f"[INFO][{report_time()}] Awake from command interval")
+                        print(
+                            f"[INFO][{report_time()}] Awake from command interval")
                         os.system(
                             f"python {sys.path[0]}\\AIO_login.py -a login")
                     except Exception:
                         pass
-                    print(f"[INFO][{report_time()}] Command Sent, sleep for interval")
+                    print(
+                        f"[INFO][{report_time()}] Command Sent, sleep for interval")
                     sleep(1)
                     print(f"[INFO][{report_time()}] Awake from interval")
                 else:
