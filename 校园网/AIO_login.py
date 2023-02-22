@@ -410,6 +410,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    os.system("chcp 65001")
+    os.system("chcp 65001>nul")
     os.chdir(sys.path[0])
     main()
