@@ -1,7 +1,7 @@
 import argparse
 import sys
 import hmac
-from requests import Session
+
 from hashlib import sha1
 import json
 import os
@@ -13,6 +13,33 @@ from urllib.parse import parse_qs, urlparse
 import requests
 from datetime import datetime
 from getpass import getpass
+import re
+
+mirror_url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+
+check_time = 15
+
+while 1:
+    try:
+        from requests import Session
+        break
+    except ImportError as ex:
+        if check_time:
+            print("try installing essential module now.")
+            module_name = re.sub(
+                "\\'", "", str(
+                    re.findall("\\'.*?\\'$", str(ex))[0]
+                ))
+            os.system(
+                f"{sys.executable} -m pip install {module_name} -i {mirror_url}"
+            )
+            check_time -= 1
+        else:
+            print("Allowed retry times exceeded, exiting in 3s...")
+            import time
+            time.sleep(3)
+            exit()
+
 
 # 鸣谢：https://github.com/Aloxaf/10_0_0_55_login
 

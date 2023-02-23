@@ -53,13 +53,13 @@ if __name__ == "__main__":
                 continue
 
             if t2-t1 > 4.5:
-                print("[WARN] Ping time limit exceeds, re-login...")
+                print(f"[WARN][{report_time()}] Network status: Offline")
                 relogin()
 
             else:
                 print(f"[INFO][{report_time()}] Network status: Normal")
                 print(
-                    f"[INFO][{report_time()}] Sleep for 600s, [Ctrl+C] to force re-login")
+                    f"[INFO][{report_time()}] Sleep for 600s, [Ctrl+C] to force re-login\n")
                 sleep(600)
                 print(f"[INFO][{report_time()}] Awake from normal sleep")
 
