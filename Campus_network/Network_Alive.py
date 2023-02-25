@@ -13,6 +13,14 @@ def date_log() -> int:
     return int(datetime.now().strftime("%d"))
 
 
+def time_convert() -> str:
+    duration=datetime.now()-start_time
+    secs = duration.seconds % 60
+    mins = int((duration.seconds) / 60) % 60
+    hours = duration.days * 24+int((duration.seconds) / 3600)
+    return f"{hours:d}:{mins:02d}:{secs:02d}"
+
+
 def log_op(operation: int):
     match operation:
         case 0:
@@ -34,11 +42,13 @@ def relogin(interval=2):
 def summary():
     os.system("cls")
     rpd = date_log()
-    print(f"今日({rpd:02d}日)概况:")
+
+    print(f"[INFO][{report_time()}]启动至今<{time_convert()}>概况:")
+    print(45*'-')
     print(
-        f"失败: {statistic['失败']:02d}, 成功: {statistic['成功']:02d}, 强制: {statistic['强制']:02d}, 跳过: {statistic['跳过']:02d}")
-    print(38*'-')
-    print("自动重登记录：")
+        f"|失败:{statistic['失败']:^5d}|成功:{statistic['成功']:^5d}|强制:{statistic['强制']:^5d}|跳过:{statistic['跳过']:^5d}|")
+    print(45*'-')
+    print(f"今日({rpd:02d}日)自动重登记录：")
     chk = 0
     for log in fail_log:
         if log[0] == rpd:
@@ -47,11 +57,13 @@ def summary():
         else:
             fail_log.remove(log)
     print("  - （无记录）") if not chk else 1
+    print(45*'-')
     return
 
 
 PING_TARGET = 'bilibili.com'
 if __name__ == "__main__":
+    start_time = datetime.now()
     statistic = {'失败': 0, '成功': 0, '强制': 0, '跳过': 0}
     fail_log = []
     t1, t2 = 0, 0
