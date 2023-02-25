@@ -39,12 +39,14 @@ def summary():
         f"失败: {statistic['失败']:02d}, 成功: {statistic['成功']:02d}, 强制: {statistic['强制']:02d}, 跳过: {statistic['跳过']:02d}")
     print(38*'-')
     print("自动重登记录：")
+    chk = 0
     for log in fail_log:
         if log[0] == rpd:
+            chk = 1
             print(f"  - {log[1]}")
         else:
             fail_log.remove(log)
-    print(fail_log)
+    print("  - （无记录）") if not chk else 1
     return
 
 
@@ -79,7 +81,7 @@ if __name__ == "__main__":
             else:
                 statistic['成功'] += 1
                 print(f"[INFO][{report_time()}] ping 判定：在线")
-                if (statistic["失败"]+statistic["成功"]+statistic["强制"])%5==0:
+                if (statistic["失败"]+statistic["成功"]+statistic["强制"]) % 5 == 0:
                     summary()
                 print(
                     f"[INFO][{report_time()}] 休眠十分钟， [Ctrl+C] 跳过休眠")
