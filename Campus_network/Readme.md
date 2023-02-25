@@ -20,7 +20,7 @@
 
 ## 运行截图
 
-<img width="674" alt="截图_20230225145105" src="https://user-images.githubusercontent.com/53437291/221343217-6487f476-0b0e-4c2b-87f1-2eefafdf16dd.png">
+<img width="674" alt="截图_20230225232209" src="https://user-images.githubusercontent.com/53437291/221365173-5b283882-f14e-444a-8bd4-947ce5e81e31.png">
 
 ## 冷知识
 
@@ -32,6 +32,7 @@
     - 缩编为AIO的初衷是减少调用错误，原模组很多bug，外部调用依托答辩，于是缩编
     - 而10_0_0_55模组的祖先是[Aloxaf](https://github.com/Aloxaf/10_0_0_55_login)
     - 一开始我写这个是为了自己和几位朋友用（b校园网老是断联）
+    - 在2022下半年测试时发现校园网下ping百度失败的概率比ping哔哩哔哩的失败概率高，故此脚本选择了后者
 3. 安全
     - 密码是在本地明文储存的`.\bit_user_detail.json`
     - 由`.\AIO-login.py`在初次使用时创建（或在密码错误等情况下修改）
