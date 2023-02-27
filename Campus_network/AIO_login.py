@@ -25,19 +25,19 @@ while 1:
         break
     except ImportError as ex:
         if check_time:
-            print("try installing essential module now.")
             module_name = re.sub(
                 "\\'", "", str(
                     re.findall("\\'.*?\\'$", str(ex))[0]
                 ))
+            print(f"正在尝试安装必要模组：{module_name}")
             os.system(
                 f"{sys.executable} -m pip install {module_name} -i {mirror_url}"
             )
             check_time -= 1
         else:
-            print("Allowed retry times exceeded, exiting in 3s...")
+            print("重试次数超过限制，请检查网络连接状况后重试，10秒后退出")
             import time
-            time.sleep(3)
+            time.sleep(10)
             exit()
 
 
@@ -79,27 +79,26 @@ def report_time() -> str:
 
 def read_config() -> tuple[str, str]:
     """从脚本所在文件夹读取用户信息
-    
+
     Return:
         Username, Password
     """
     try:
-        config_file=open(".\\bit_user_detail.json", "r", encoding="utf8") 
+        config_file = open(".\\bit_user_detail.json", "r", encoding="utf8")
         config = json.load(config_file)
         return config["username"], config["password"]
     except FileNotFoundError:
-        print(f"[{report_time()}] 未找到配置文件，正在创建...")
+        print(f"[WARN][{report_time()}] 未找到配置文件，正在创建...")
         return write_config()
     except json.decoder.JSONDecodeError:
-        print(f"[{report_time()}] 文件错误，正在重写...")
+        print(f"[WARN][{report_time()}] 文件错误，正在重写...")
         return write_config()
-
 
 
 def write_config() -> tuple[str, str]:
     with open(".\\bit_user_detail.json", "w", encoding="utf8") as config_file:
-        username = input(f"[{report_time()}] 请输入账号:")
-        password = getpass(f"[{report_time()}] 请输入密码:",)
+        username = input(f"[INFO][{report_time()}] 请输入账号:")
+        password = getpass(f"[INFO][{report_time()}] 请输入密码:",)
         config_file.write(
             f"{{\"username\":\"{username}\",\"password\":\"{password}\"}}"
         )
@@ -124,7 +123,7 @@ class User:
 
     def log_action(self, action: Action) -> dict:
         """检查当前登录情况
-        
+
         Raises:
             - AlreadyOnlineException: 重复登录
             - AlreadyLoggedOutException: 重复登出
@@ -136,14 +135,20 @@ class User:
         is_logged_in, username = get_user_info()
 
         if is_logged_in and action is Action.LOGIN:
-            raise AlreadyOnlineException(f"[{report_time()}] {username}重复登录")
+            if username is not None:
+                raise AlreadyOnlineException(
+                    f"[WARN][{report_time()}] {username}重复登录")
+            else:
+                raise AlreadyOnlineException(
+                    f"[WARN][{report_time()}] 重复登录")
 
         elif not is_logged_in and action is Action.LOGOUT:
-            raise AlreadyLoggedOutException(f"[{report_time()}] {username}重复登出")
+            raise AlreadyLoggedOutException(
+                f"[WARN][{report_time()}] {username}重复登出")
 
         elif username and username != self.username:
             raise UsernameUnmatchedException(
-                f"[{report_time()}] 当前在线用户:{username}与尝试操作用户:{self.username}账号不同"
+                f"[WARN][{report_time()}] 当前在线用户:{username}与尝试操作用户:{self.username}账号不同"
             )
 
         # 检查通过，开始执行登录登出
@@ -152,8 +157,8 @@ class User:
             API_BASE + "/cgi-bin/srun_portal",
             params=params
         )
-        res=dict(json.loads(response.text[6:-1]))
-        res["username"]=self.username
+        res = dict(json.loads(response.text[6:-1]))
+        res["username"] = self.username
         return res
 
     def _get_token(self) -> str:
@@ -288,7 +293,7 @@ def get_user_info():
 
 def fkbase64(raw_s: str) -> str:
     """base64掩码加密
-    
+
     Returns:
         - str: encoded string
     """
@@ -391,7 +396,7 @@ def main() -> None:
     # sys.argv.append("LOGin")
 
     for arg in sys.argv:
-        sys.argv[sys.argv.index(arg)]=arg.lower()
+        sys.argv[sys.argv.index(arg)] = arg.lower()
     args = parser.parse_args()
 
     try:
@@ -399,39 +404,40 @@ def main() -> None:
             while 1:
                 user = User(USNM, PSWD)
                 res = user.log_action(Action.LOGIN)
-                if res.get('error_msg')=="Password is error.":
-                    print(f"[{report_time()}] 密码错误，请重新输入账号密码")
-                    write_config()
-                else:
-                    break
-            print(f"[{report_time()}] 用户{res.get('username')} IP({res.get('online_ip')}) 登录成功")
-        elif str(args.action) in ["logout", "登出", "下线", "退出"]:
-            while 1:
-                user = User(USNM, PSWD)
-                res = user.log_action(Action.LOGOUT)
-                if res.get('error_msg')=="Password is error.":
-                    print(f"[{report_time()}] 密码错误，请重新输入账号密码")
+                if res.get('error_msg') == "Password is error.":
+                    print(f"[WARN][{report_time()}] 密码错误，请重新输入账号密码")
                     write_config()
                 else:
                     break
             print(
-                f"[{report_time()}] 用户{res.get('username')} IP({res.get('online_ip')}) 现已登出"
-                )
+                f"[INFO][{report_time()}] 用户{res.get('username')} IP({res.get('online_ip')}) 登录成功")
+        elif str(args.action) in ["logout", "登出", "下线", "退出"]:
+            while 1:
+                user = User(USNM, PSWD)
+                res = user.log_action(Action.LOGOUT)
+                if res.get('error_msg') == "Password is error.":
+                    print(f"[WARN][{report_time()}] 密码错误，请重新输入账号密码")
+                    write_config()
+                else:
+                    break
+            print(
+                f"[INFO][{report_time()}] 用户{res.get('username')} IP({res.get('online_ip')}) 现已登出"
+            )
 
         else:
             raise UnreachableError(f"[Cannot Resolve Para]{args.action}")
 
     except UnreachableError as e:
         print(e)
-        exit(1)
+        exit(10)
 
     except Exception as e:
         print(e)
-        exit(2)
+        exit(11)
 
     except KeyboardInterrupt:
-        print(f"[{report_time()}] 手动退出")
-        exit(3)
+        print(f"[WARN][{report_time()}] 手动退出")
+        exit(12)
 
     exit(0)
 
