@@ -14,6 +14,7 @@ import requests
 from datetime import datetime
 from getpass import getpass
 import re
+import calendar
 
 mirror_url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 
@@ -440,6 +441,36 @@ def main() -> None:
         exit(12)
 
     exit(0)
+
+
+def traffic_query() -> dict[str]:
+    """当且仅当登陆成功后请求此jQuery来获取详细信息
+    """
+    query_url = f"{API_BASE}/cgi-bin/rad_user_info?callback=1677774013868"
+    user_detail = dict(json.loads(re.findall(
+        r"\{[\s\S]*\}", requests.get(url=query_url).text)[0]))
+
+    query_result = {}
+    query_result['time_online'] = user_detail.get('sum_seconds')/3600
+    query_result['traffic_remain'] = user_detail.get('remain_bytes')/1073741824
+    query_result['traffic_used'] = user_detail.get('sum_bytes')/1073741824
+    query_result['balance_main'] = user_detail.get('user_balance')
+    query_result['balance_wallet'] = user_detail.get('wallet_balance')
+
+    today = datetime.now()
+    month_days = calendar.monthrange(today.year, today.month)[1]
+    passed_days = today.day-1
+    rest_days = month_days-passed_days
+    traffic_balance = (user_detail.get('sum_bytes') /
+                       214748364800) > passed_days/month_days
+    if not traffic_balance:
+        exceed_part = user_detail.get(
+            'sum_bytes')-214748364800*passed_days/month_days
+    query_result['traffic_balance'] = (
+        query_result['traffic_used']/200) < passed_days/month_days
+    query_result['exceed_part'] = abs(
+        query_result['traffic_used']-200*passed_days/month_days)
+    return query_result
 
 
 if __name__ == "__main__":
