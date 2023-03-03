@@ -48,6 +48,7 @@ while 1:
 class Action(Enum):
     LOGIN = "login"
     LOGOUT = "logout"
+    QUERY = "query"
 
 
 class AlreadyOnlineException(Exception):
@@ -59,6 +60,10 @@ class AlreadyLoggedOutException(Exception):
 
 
 class UsernameUnmatchedException(Exception):
+    pass
+
+
+class QueryEmptyUser(Exception):
     pass
 
 
@@ -82,21 +87,28 @@ def read_config() -> tuple[str, str]:
     """从脚本所在文件夹读取用户信息
 
     Return:
-        Username, Password
+        - tuple[str, str]: (username, password)
     """
     try:
         config_file = open(".\\bit_user_detail.json", "r", encoding="utf8")
         config = json.load(config_file)
         return config["username"], config["password"]
+
     except FileNotFoundError:
         print(f"[WARN][{report_time()}] 未找到配置文件，正在创建...")
         return write_config()
+
     except json.decoder.JSONDecodeError:
         print(f"[WARN][{report_time()}] 文件错误，正在重写...")
         return write_config()
 
 
 def write_config() -> tuple[str, str]:
+    """写入登录配置文件
+
+    Return:
+        - tuple[str, str]: (username, password)
+    """
     with open(".\\bit_user_detail.json", "w", encoding="utf8") as config_file:
         username = input(f"[INFO][{report_time()}] 请输入账号:")
         password = getpass(f"[INFO][{report_time()}] 请输入密码:",)
@@ -122,7 +134,7 @@ class User:
         self.ip, self.acid = parse_homepage()
         self.session = Session()
 
-    def log_action(self, action: Action) -> dict:
+    def operation(self, action: Action) -> dict:
         """检查当前登录情况
 
         Raises:
@@ -135,22 +147,33 @@ class User:
         """
         is_logged_in, username = get_user_info()
 
-        if is_logged_in and action is Action.LOGIN:
-            if username is not None:
-                raise AlreadyOnlineException(
-                    f"[WARN][{report_time()}] {username}重复登录")
-            else:
-                raise AlreadyOnlineException(
-                    f"[WARN][{report_time()}] 重复登录")
+        if is_logged_in:
+            if action is Action.LOGIN:
+                if username is not None:
+                    raise AlreadyOnlineException(
+                        f"[WARN][{report_time()}] {username}重复登录")
 
-        elif not is_logged_in and action is Action.LOGOUT:
-            raise AlreadyLoggedOutException(
-                f"[WARN][{report_time()}] {username}重复登出")
+                else:
+                    raise AlreadyOnlineException(
+                        f"[WARN][{report_time()}] 重复登录")
+            elif action is Action.QUERY:
+                return traffic_query()
+
+        elif not is_logged_in:
+            if action is Action.LOGOUT:
+                raise AlreadyLoggedOutException(
+                    f"[WARN][{report_time()}] {username}重复登出")
+            elif action is Action.QUERY:
+                raise
 
         elif username and username != self.username:
             raise UsernameUnmatchedException(
                 f"[WARN][{report_time()}] 当前在线用户:{username}与尝试操作用户:{self.username}账号不同"
             )
+
+        else:
+            raise UnreachableError(
+                f"[WARN][{report_time()}] {action} is not supported.")
 
         # 检查通过，开始执行登录登出
         params = self._make_params(action)
@@ -379,17 +402,53 @@ def xencode(msg, key):
     return lencode(pwd, False)
 
 
+def traffic_query() -> dict:
+    """当且仅当登陆成功后请求此jQuery来获取详细信息
+
+    Returns:
+        - QueryDetail: query_result
+    """
+    query_url = f"{API_BASE}/cgi-bin/rad_user_info?callback=1677774013868"
+    user_detail = dict(json.loads(re.findall(
+        r"\{[\s\S]*\}", requests.get(url=query_url).text)[0]))
+
+    query_result = {}
+    query_result['time_online'] = user_detail.get('sum_seconds')
+    query_result['traffic_remain'] = user_detail.get('remain_bytes')
+    query_result['traffic_used'] = user_detail.get('sum_bytes')
+    query_result['balance_main'] = user_detail.get('user_balance')
+    query_result['balance_wallet'] = user_detail.get('wallet_balance')
+
+    today = datetime.now()
+    month_days = calendar.monthrange(today.year, today.month)[1]
+    passed_days = today.day - 1
+
+    balance = 200*1024*1024*1024*passed_days / \
+        month_days-int(query_result['traffic_used'])
+
+    query_result['traffic_balance'] = (balance == abs(balance))
+    query_result['exceed_part'] = abs(balance)
+    query_result['exceed_part_per_day'] = abs(balance)/passed_days
+
+    query_result['record_date'] = str(today.date())
+
+    return query_result
+
+
 def main() -> None:
     """读取命令，分析参数，回报执行状态
 
     Returns:
         - None
     """
+    arg_choices = ["login", "登录", "登陆", "上线",
+                   "logout",  "登出", "下线", "退出"
+                   "traffic", "流量", "余量", "使用状况"]
     USNM, PSWD = read_config()
     parser = argparse.ArgumentParser(description="Login to BIT network")
     parser.add_argument(
         "-a", "--action",
-        choices=["login", "logout", "登录", "登陆", "上线", "登出", "下线", "退出"],
+        choices=arg_choices,
         help="login or logout"
     )
 
@@ -404,7 +463,7 @@ def main() -> None:
         if str(args.action) in ["login", "登录", "登陆", "上线"]:
             while 1:
                 user = User(USNM, PSWD)
-                res = user.log_action(Action.LOGIN)
+                res = user.operation(Action.LOGIN)
                 if res.get('error_msg') == "Password is error.":
                     print(f"[WARN][{report_time()}] 密码错误，请重新输入账号密码")
                     write_config()
@@ -412,10 +471,11 @@ def main() -> None:
                     break
             print(
                 f"[INFO][{report_time()}] 用户{res.get('username')} IP({res.get('online_ip')}) 登录成功")
+
         elif str(args.action) in ["logout", "登出", "下线", "退出"]:
             while 1:
                 user = User(USNM, PSWD)
-                res = user.log_action(Action.LOGOUT)
+                res = user.operation(Action.LOGOUT)
                 if res.get('error_msg') == "Password is error.":
                     print(f"[WARN][{report_time()}] 密码错误，请重新输入账号密码")
                     write_config()
@@ -424,6 +484,22 @@ def main() -> None:
             print(
                 f"[INFO][{report_time()}] 用户{res.get('username')} IP({res.get('online_ip')}) 现已登出"
             )
+
+        elif str(args.action) in ["traffic", "流量", "余量", "使用状况"]:
+            user = User(USNM, PSWD)
+            res = user.operation(Action.QUERY)
+            with open(".\\traffic_record.csv") as record:
+                record.write(f"{res.get()},,,")
+            print(f"[Experimental][DT:{res.get('record_date'):s}]")
+            print(f"[Experimental][OT:{res.get('time_online'):d}]")
+            print(f"[Experimental][TR:{res.get('traffic_remain')/1024/1024/1024:.0f}]")
+            print(
+                f"[Experimental][TU:{res.get('traffic_used')/1024/1024/1024:.0f}]")
+            print(f"[Experimental][BM:{res.get('balance_main'):d}]")
+            print(f"[Experimental][BW:{res.get('balance_wallet'):d}]")
+            print(f"[Experimental][TB:{res.get('traffic_balance'):s}]")
+            print(
+                f"[Experimental][EP:{res.get('exceed_part')/1024/1024/1024:.0f}]")
 
         else:
             raise UnreachableError(f"[Cannot Resolve Para]{args.action}")
@@ -441,36 +517,6 @@ def main() -> None:
         exit(12)
 
     exit(0)
-
-
-def traffic_query() -> dict[str]:
-    """当且仅当登陆成功后请求此jQuery来获取详细信息
-    """
-    query_url = f"{API_BASE}/cgi-bin/rad_user_info?callback=1677774013868"
-    user_detail = dict(json.loads(re.findall(
-        r"\{[\s\S]*\}", requests.get(url=query_url).text)[0]))
-
-    query_result = {}
-    query_result['time_online'] = user_detail.get('sum_seconds')/3600
-    query_result['traffic_remain'] = user_detail.get('remain_bytes')/1073741824
-    query_result['traffic_used'] = user_detail.get('sum_bytes')/1073741824
-    query_result['balance_main'] = user_detail.get('user_balance')
-    query_result['balance_wallet'] = user_detail.get('wallet_balance')
-
-    today = datetime.now()
-    month_days = calendar.monthrange(today.year, today.month)[1]
-    passed_days = today.day-1
-    rest_days = month_days-passed_days
-    traffic_balance = (user_detail.get('sum_bytes') /
-                       214748364800) > passed_days/month_days
-    if not traffic_balance:
-        exceed_part = user_detail.get(
-            'sum_bytes')-214748364800*passed_days/month_days
-    query_result['traffic_balance'] = (
-        query_result['traffic_used']/200) < passed_days/month_days
-    query_result['exceed_part'] = abs(
-        query_result['traffic_used']-200*passed_days/month_days)
-    return query_result
 
 
 if __name__ == "__main__":
