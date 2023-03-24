@@ -442,8 +442,9 @@ def main() -> None:
         - None
     """
     arg_choices = ["login", "登录", "登陆", "上线",
-                   "logout",  "登出", "下线", "退出"
-                   "traffic", "流量", "余量", "使用状况"]
+                   "logout",  "登出", "下线", "退出",
+                   "traffic", "流量", "余量", "使用状况",
+                   "chkJson"]
     USNM, PSWD = read_config()
     parser = argparse.ArgumentParser(description="Login to BIT network")
     parser.add_argument(
@@ -501,6 +502,9 @@ def main() -> None:
             print(
                 f"[Experimental][EP:{res.get('exceed_part')/1024/1024/1024:.0f}]")
 
+        elif str(args.action) in ["chkJson"]:
+            read_config()
+            exit(13)
         else:
             raise UnreachableError(f"[Cannot Resolve Para]{args.action}")
 

@@ -6,14 +6,17 @@
 
     > ```batch
     > pip install requests
+    > pip install pillow
+    > pip install pystray
     > ```
 
-2. 下载俩脚本（或本文件夹）
+2. 下载本文件夹
 3. 运行脚本
-    - 开始中断重连挂机：
-        1. 双击运行Network_Alive.py
+    - 开始自动重连：
+        1. 双击运行Tray_start.pyw
         2. 按照提示输入账号密码
         3. 挂机
+        4. 通过在任务栏托盘处找到图标，右键切换控制台现实情况
     - 只想用来登录、登出（命令行）
         1. `python .\AIO_login.py -a 登录`（或‘登出’）
         2. 按照提示输入账号密码
@@ -41,3 +44,5 @@
 
 4. 因为身边没有用macos/linux的，也没有经验，故不确定是否支持
 5. 欢迎Issue可能的bug
+
+6. 感谢组织部某位同学提供的 `pystray` 思路

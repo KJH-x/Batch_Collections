@@ -40,6 +40,9 @@ def log_op(operation: int):
             ret = os.system(f"python {AIO_PATH}\\AIO_login.py -a logout")
         case 1:
             ret = os.system(f"python {AIO_PATH}\\AIO_login.py -a login")
+        # 备用
+        # case 2:
+        #     ret = os.system(f"python {AIO_PATH}\\AIO_login.py -a chkJson")
         case _:
             ret = -1
     if ret == 2:
