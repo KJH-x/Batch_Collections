@@ -10,7 +10,7 @@
     > pip install pystray
     > ```
 
-2. 下载`Campus_network.7z`并解压
+2. 下载[`Campus_network.7z`](https://github.com/KJH-x/Batch_Collections/blob/main/Campus_network/Campus_network.7z)并解压
 3. 运行脚本
     - 开始自动重连：
         1. 双击运行Tray_start.pyw
