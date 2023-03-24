@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://github.com/KJH-x/Batch_Collections/blob/main/Campus_network/Network_Alive.ico" alt="Icon">
+</p>
+
 # 校园网脚本食用方法
 
 ## 使用步骤
