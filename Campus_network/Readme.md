@@ -50,3 +50,4 @@
 5. 欢迎Issue可能的bug
 
 6. 感谢网协某位同学提供的 `pystray` 思路
+7. 感谢ChatGPT(March 14 version)的部分代码建议
