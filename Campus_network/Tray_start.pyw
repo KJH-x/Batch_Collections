@@ -26,9 +26,9 @@ def get_window_by_pid(process: subprocess.Popen) -> int:
     window = 0
     windows = []
 
-    def enum_windows_callback(hwnd: int, lParam):
-        if win32process.GetWindowThreadProcessId(hwnd)[1] == process.pid:
-            windows.append(hwnd)
+    def enum_windows_callback(hWnd: int, lParam):
+        if win32process.GetWindowThreadProcessId(hWnd)[1] == process.pid:
+            windows.append(hWnd)
     win32gui.EnumWindows(enum_windows_callback, None)
     if len(windows) > 0:
         # If multiple windows are found with the same PID, just use the first one
