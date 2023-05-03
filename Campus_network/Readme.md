@@ -6,7 +6,7 @@
 
 ## 使用步骤
 
-1. 安装python依赖：
+1. 安装[python](https://www.python.org/downloads/)和python依赖：
 
     > ```batch
     > pip install requests
@@ -15,9 +15,19 @@
     > ```
 
 2. 下载[`Campus_network.7z`](https://github.com/KJH-x/Batch_Collections/blob/main/Campus_network/Campus_network.7z)并解压
+
+    > 可选的步骤：检查文件数量是否正确
+    >
+    > - AIO_login.py
+    > - Network_Alive.ico
+    > - Network_Alive.py
+    > - Readme.md(本文件)
+    > - Tray_Launcher.pyw(运行此文件)
+    >
+
 3. 运行脚本
     - 开始自动重连：
-        1. 双击运行Tray_start.pyw
+        1. 双击运行Tray_Launcher.pyw
         2. 按照提示输入账号密码
         3. 挂机
         4. 通过在任务栏托盘处找到图标，右键切换控制台现实情况
@@ -48,6 +58,6 @@
 
 4. 因为身边没有用macos/linux的，也没有经验，故不确定是否支持
 5. 欢迎Issue可能的bug
-
 6. 感谢网协某位同学提供的 `pystray` 思路
 7. 感谢ChatGPT(March 14 version)的部分代码建议
+8. 本代码参加了北京理工大学第一届“十行代码”挑战赛
