@@ -1,13 +1,14 @@
+# encoding = utf-8
 # Network_Alive
 
 import sys
 import os
 from datetime import datetime
-from time import sleep, time
+import time
 
 
 class UnreachableError(SyntaxError):
-    """Branch that should not be reached
+    """Code Branch that should not be reached
     """
 
     def __init__(self, msg):
@@ -19,46 +20,63 @@ class UnreachableError(SyntaxError):
 
 
 def report_time() -> str:
+    """返回：文本：格式化的当前时间
+    """
     return datetime.now().strftime("%H:%M:%S")
 
 
 def date_log() -> int:
+    """返回：整数：格式化的日期数字
+    """
     return int(datetime.now().strftime("%d"))
 
 
 def time_convert() -> str:
-    duration = datetime.now()-start_time
+    """返回：文本：格式化的持续时间
+    """
+    duration = datetime.now()-START_TIME
     secs = duration.seconds % 60
     mins = int((duration.seconds) / 60) % 60
     hours = duration.days * 24+int((duration.seconds) / 3600)
     return f"{hours:d}:{mins:02d}:{secs:02d}"
 
 
-def log_op(operation: int):
+def operation(operation: int):
+    """AIO脚本交互函数，通过命令行传参
+
+    TO DO:
+      - Use subprocess to excute the command
+    """
     match operation:
         case 0:
-            ret = os.system(f"python {AIO_PATH}\\AIO_login.py -a logout")
+            prompt_return = os.system(f"python {AIO_PATH}\\AIO_login.py -a logout")
         case 1:
-            ret = os.system(f"python {AIO_PATH}\\AIO_login.py -a login")
+            prompt_return = os.system(f"python {AIO_PATH}\\AIO_login.py -a login")
         # 备用
         # case 2:
         #     ret = os.system(f"python {AIO_PATH}\\AIO_login.py -a chkJson")
         case _:
-            ret = -1
-    if ret == 2:
+            prompt_return = -1
+    if prompt_return == 2:
         input(f"[WARN][{report_time()}]脚本丢失，无法启动，请重新启动脚本并跟随引导重新设置")
         exit(1)
-    return ret
+    return prompt_return
 
 
 def relogin(interval=2):
-    log_op(0)
-    sleep(interval)
-    log_op(1)
-    sleep(interval)
+    """带有两秒钟等待时间的重登
+    """
+    operation(0)
+    time.sleep(interval)
+    operation(1)
+    time.sleep(interval)
 
 
 def summary(statistic: dict[str, str], fail_log: list):
+    """打印：文本：刷新时的任务总结
+
+    返回：无
+    """
     os.system("cls")
     rpd = date_log()
 
@@ -82,6 +100,10 @@ def summary(statistic: dict[str, str], fail_log: list):
 
 
 def entrance_protect() -> bool:
+    """脚本依赖检查
+    
+    返回：布尔：成功
+    """
     print(f"[INFO][{report_time()}] 正在检查依赖脚本")
     while not check_component():
         continue
@@ -119,23 +141,28 @@ def check_component() -> bool:
 def main_loop() -> None:
     statistic = {'失败': 0, '成功': 0, '强制': 0, '跳过': 0}
     fail_log = []
+    t1, t2 = 0.0, 0.0
     while 1:
         try:
             print(
                 f"[INFO][{report_time()}] 正在ping {PING_TARGET}, [Ctrl+C] 强制重登")
 
             try:
-                t1 = time()
+                t1 = time.time()
                 os.popen(f"ping {PING_TARGET} -n 2").readlines()
-                t2 = time()
+                t2 = time.time()
 
             except KeyboardInterrupt:
                 statistic['强制'] += 1
                 print(f"[USER][{report_time()}] [Ctrl+C] 强制重登")
+                time.sleep(0.1)
+                sys.stdout.write('\r\033[K')
+                # 去除控制台打印的^C
                 relogin()
                 continue
 
             if t2-t1 > 4.5:
+                # 超过4.5秒即可判为失败，减少等待时间（单次）
                 statistic['失败'] += 1
                 fail_log.append([date_log(), report_time()])
                 print(f"[WARN][{report_time()}] ping 判定：离线")
@@ -150,7 +177,7 @@ def main_loop() -> None:
                     summary(statistic, fail_log)
                 print(
                     f"[INFO][{report_time()}] 休眠十分钟， [Ctrl+C] 跳过休眠")
-                sleep(600)
+                time.sleep(600)
 
         except KeyboardInterrupt:
             statistic['跳过'] += 1
@@ -164,9 +191,9 @@ def main_loop() -> None:
 
 
 PING_TARGET = 'bilibili.com'
-VERSION = 'v1.0.3'
+VERSION = 'v1.0.4'
 AIO_PATH = sys.path[0]
-start_time = datetime.now()
+START_TIME = datetime.now()
 welcome_msg = f"""
 ---------------------------------------------------------------------
 [INFO] 欢迎使用校园网自动重连脚本
@@ -181,6 +208,5 @@ welcome_msg = f"""
 """
 
 if __name__ == "__main__":
-    t1, t2 = 0.0, 0.0
     while not entrance_protect():
         continue
