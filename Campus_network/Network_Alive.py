@@ -1,8 +1,9 @@
 # encoding = utf-8
 # Network_Alive
 
-import sys
 import os
+import subprocess
+import sys
 from datetime import datetime
 import time
 
@@ -42,24 +43,37 @@ def time_convert() -> str:
 
 
 def operation(operation: int):
-    """AIO脚本交互函数，通过命令行传参
+    """AIO脚本交互函数，通过subprocess 调用
 
-    TO DO:
-      - Use subprocess to excute the command
     """
+    command = ["python", f"{AIO_PATH}\\AIO_login.py", "-a"]
     match operation:
         case 0:
-            prompt_return = os.system(f"python {AIO_PATH}\\AIO_login.py -a logout")
+            command.append("logout")
+            prompt_return = subprocess.run(
+                command, capture_output=True, text=True).returncode
         case 1:
-            prompt_return = os.system(f"python {AIO_PATH}\\AIO_login.py -a login")
+            command.append("login")
+            prompt_return = subprocess.run(
+                command, capture_output=True, text=True).returncode
         # 备用
-        # case 2:
-        #     ret = os.system(f"python {AIO_PATH}\\AIO_login.py -a chkJson")
+        case 2:
+            # input("operation:start sp:verify")
+            command.append("verify")
+            prompt_return = subprocess.run(
+                command, capture_output=True, text=True).returncode
+            # print("operation:start sp:verify rtc:",prompt_return)
         case _:
             prompt_return = -1
     if prompt_return == 2:
         input(f"[WARN][{report_time()}]脚本丢失，无法启动，请重新启动脚本并跟随引导重新设置")
         exit(1)
+    elif prompt_return == 14:
+        command.append("mkjson")
+        # input("operation:start sp:mkjson")
+        prompt_return = subprocess.run(
+            command, capture_output=True, text=True).returncode
+        # print("operation:start sp:mkjson rtc:", prompt_return)
     return prompt_return
 
 
@@ -101,7 +115,7 @@ def summary(statistic: dict[str, str], fail_log: list):
 
 def entrance_protect() -> bool:
     """脚本依赖检查
-    
+
     返回：布尔：成功
     """
     print(f"[INFO][{report_time()}] 正在检查依赖脚本")
@@ -115,8 +129,9 @@ def entrance_protect() -> bool:
 
 def check_component() -> bool:
     global AIO_PATH
+    # flag=True
     if os.access(f"{AIO_PATH}\\AIO_login.py", os.R_OK):
-        return True
+        pass
     else:
         print(f"[WARN][{report_time()}] 在\"{AIO_PATH}\"")
         print(f"[WARN][{report_time()}] 找不到登录脚本(默认情况下它应该和本脚本在同一个文件夹)")
@@ -135,6 +150,12 @@ def check_component() -> bool:
         else:
             raise UnreachableError("无法理解的路径")
         print(AIO_PATH)
+        return False
+    if not operation(2):
+        # input("check_component:operation 2 check pass")
+        return True
+    else:
+        # input("check_component:operation 2 check fail")
         return False
 
 
@@ -191,7 +212,7 @@ def main_loop() -> None:
 
 
 PING_TARGET = 'bilibili.com'
-VERSION = 'v1.0.4'
+VERSION = 'v1.1.0'
 AIO_PATH = sys.path[0]
 START_TIME = datetime.now()
 welcome_msg = f"""
