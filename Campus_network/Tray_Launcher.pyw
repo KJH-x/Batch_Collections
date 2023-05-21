@@ -1,14 +1,14 @@
-import pystray
-import win32gui
-import win32con
-import win32process
-import subprocess
-import os
-import sys
-from PIL import Image
 import ctypes
+import os
+import subprocess
+import sys
 import time
+import win32con
+import win32gui
+import win32process
 
+import pystray
+from PIL import Image
 
 def toggle_window_visibility(process: subprocess.Popen):
     """
