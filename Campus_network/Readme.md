@@ -6,13 +6,7 @@
 
 ## 使用步骤
 
-1. 安装[python](https://www.python.org/downloads/)和python依赖：
-
-    > ```batch
-    > pip install requests
-    > pip install pillow
-    > pip install pystray
-    > ```
+1. 安装[python](https://www.python.org/downloads/)：
 
 2. 下载[`Campus_network.7z`](https://github.com/KJH-x/Batch_Collections/blob/main/Campus_network/Campus_network.7z)并解压
 
@@ -22,10 +16,16 @@
     > - Network_Alive.ico
     > - Network_Alive.py
     > - Readme.md(本文件)
-    > - Tray_Launcher.pyw(运行此文件)
-    >
+    > - Tray_Launcher.pyw(挂机请运行此文件)
+    > - requirements.txt
 
-3. 运行脚本
+3. 安装python依赖（在解压后的文件夹地址栏输入cmd，复制以下内容粘贴运行）
+
+    > ```batch
+    > pip install -r requirements.txt
+    > ```
+
+4. 运行脚本
     - 开始自动重连：
         1. 双击运行Tray_Launcher.pyw
         2. 按照提示输入账号密码
