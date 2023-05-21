@@ -1,45 +1,71 @@
 import argparse
-import sys
+import calendar
 import hmac
-
-from hashlib import sha1
 import json
-import os
-from enum import Enum
 import math
+import os
+import re
+import subprocess
+import time
 from base64 import b64encode
+from datetime import datetime
+from enum import Enum
+from getpass import getpass
+from hashlib import sha1
 from html.parser import HTMLParser
 from urllib.parse import parse_qs, urlparse
-import requests
-from datetime import datetime
-from getpass import getpass
-import re
-import calendar
+import sys
+import time
+
 
 mirror_url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+module_name = "requests"
 
-check_time = 15
 
-while 1:
-    try:
-        from requests import Session
-        break
-    except ImportError as ex:
-        if check_time:
-            module_name = re.sub(
-                "\\'", "", str(
-                    re.findall("\\'.*?\\'$", str(ex))[0]
-                ))
-            print(f"正在尝试安装必要模组：{module_name}")
-            os.system(
-                f"{sys.executable} -m pip install {module_name} -i {mirror_url}"
-            )
-            check_time -= 1
+def install_module(module_name: str, mirror_url: str, check_time: int = 15) -> bool:
+    """安装指定模块
+
+    Args:
+        module_name (str): 模块名称
+        mirror_url (str): 镜像源URL
+        check_time (int, optional): 最大重试次数. 默认为15.
+
+    Returns:
+        bool: 安装成功返回True，否则返回False
+    """
+    while check_time > 0:
+        try:
+            __import__(module_name)
+            return True
+        except ImportError:
+            pass
+
+        print(f"正在尝试安装必要模块：{module_name}")
+        command = [
+            sys.executable,
+            "-m", "pip", "install", module_name,
+            "-i", mirror_url,
+        ]
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            print("模块安装成功.")
+            return True
         else:
-            print("重试次数超过限制，请检查网络连接状况后重试，10秒后退出")
-            import time
-            time.sleep(10)
-            exit()
+            print("模块安装失败.")
+
+        check_time -= 1
+
+    print("重试次数超过限制，请检查网络连接状况后重试，10秒后退出")
+    time.sleep(10)
+    return False
+
+
+if install_module(module_name, mirror_url):
+    import requests
+    from requests import Session
+else:
+    exit(1)
 
 
 # 鸣谢：https://github.com/Aloxaf/10_0_0_55_login
@@ -49,6 +75,7 @@ class Action(Enum):
     LOGIN = "login"
     LOGOUT = "logout"
     QUERY = "query"
+    VERIFY = "verify"
 
 
 class AlreadyOnlineException(Exception):
@@ -64,6 +91,10 @@ class UsernameUnmatchedException(Exception):
 
 
 class QueryEmptyUser(Exception):
+    pass
+
+
+class WrongUserInfo(Exception):
     pass
 
 
@@ -110,12 +141,20 @@ def write_config() -> tuple[str, str]:
         - tuple[str, str]: (username, password)
     """
     with open(".\\bit_user_detail.json", "w", encoding="utf8") as config_file:
-        username = input(f"[INFO][{report_time()}] 请输入账号:")
-        password = getpass(f"[INFO][{report_time()}] 请输入密码:",)
+        username = getpass(f"[INFO][{report_time()}] 请输入账号(你不会看到输入的内容):")
+        password = getpass(f"[INFO][{report_time()}] 请输入密码(你不会看到输入的内容):",)
         config_file.write(
             f"{{\"username\":\"{username}\",\"password\":\"{password}\"}}"
         )
     return username, password
+
+
+def clear_config() -> None:
+    with open(".\\bit_user_detail.json", "w", encoding="utf8") as config_file:
+        config_file.write(
+            f"{{\"username\":\"\",\"password\":\"\"}}"
+        )
+    return
 
 
 API_BASE = "http://10.0.0.55"
@@ -147,11 +186,19 @@ class User:
         """
         is_logged_in, username = get_user_info()
 
-        if is_logged_in:
+        if username and username != self.username:
+            raise UsernameUnmatchedException(
+                f"[WARN][{report_time()}] 当前在线用户:{username:1s}与尝试操作用户{self.username:1s}账号不同，使用-a mkjson参数重新填写"
+            )
+
+        elif action is Action.VERIFY:
+            action=Action.LOGIN
+            
+        elif is_logged_in:
             if action is Action.LOGIN:
                 if username is not None:
                     raise AlreadyOnlineException(
-                        f"[WARN][{report_time()}] {username}重复登录")
+                        f"[WARN][{report_time()}] 重复登录，当前在线：{username}")
 
                 else:
                     raise AlreadyOnlineException(
@@ -164,26 +211,27 @@ class User:
                 raise AlreadyLoggedOutException(
                     f"[WARN][{report_time()}] {username}重复登出")
             elif action is Action.QUERY:
-                raise
-
-        elif username and username != self.username:
-            raise UsernameUnmatchedException(
-                f"[WARN][{report_time()}] 当前在线用户:{username}与尝试操作用户:{self.username}账号不同"
-            )
+                raise AlreadyLoggedOutException(
+                    f"[WARN][{report_time()}] 已登出，取消查询")
 
         else:
             raise UnreachableError(
                 f"[WARN][{report_time()}] {action} is not supported.")
 
-        # 检查通过，开始执行登录登出
-        params = self._make_params(action)
-        response = self.session.get(
-            API_BASE + "/cgi-bin/srun_portal",
-            params=params
-        )
-        res = dict(json.loads(response.text[6:-1]))
-        res["username"] = self.username
-        return res
+
+        if params := self._make_params(action):
+
+            response = self.session.get(
+                API_BASE + "/cgi-bin/srun_portal",
+                params=params
+            )
+            res = dict(json.loads(
+                response.text[6:-1])) if response.text.startswith("jsonp") else {}
+            res["username"] = self.username
+            return res
+        else:
+            raise WrongUserInfo(
+                f"[WARN][{report_time()}] 信息错误，使用-a mkjson参数重新填写")
 
     def _get_token(self) -> str:
         """获取token
@@ -191,6 +239,7 @@ class User:
         Returns:
             - str: token
         """
+        result = {}
         params = {
             "callback": "jsonp",
             "username": self.username,
@@ -200,8 +249,12 @@ class User:
         response = self.session.get(
             API_BASE + "/cgi-bin/get_challenge", params=params
         )
-        result = json.loads(response.text[6:-1])
-        return result["challenge"]
+        result = dict(json.loads(response.text[6:-1]))
+
+        if result.get("challenge"):
+            return result.get("challenge")
+        else:
+            return None
 
     def _make_params(self, action: Action) -> dict:
         """制作请求参数
@@ -443,8 +496,8 @@ def main() -> None:
     """
     arg_choices = ["login", "登录", "登陆", "上线",
                    "logout",  "登出", "下线", "退出",
-                   "traffic", "流量", "余量", "使用状况",
-                   "chkJson"]
+                   #    "traffic", "流量", "余量", "使用状况",
+                   "chkjson", "mkjson", "clear", "verify"]
     USNM, PSWD = read_config()
     parser = argparse.ArgumentParser(description="Login to BIT network")
     parser.add_argument(
@@ -468,6 +521,7 @@ def main() -> None:
                 if res.get('error_msg') == "Password is error.":
                     print(f"[WARN][{report_time()}] 密码错误，请重新输入账号密码")
                     write_config()
+                    USNM, PSWD = read_config()
                 else:
                     break
             print(
@@ -480,33 +534,50 @@ def main() -> None:
                 if res.get('error_msg') == "Password is error.":
                     print(f"[WARN][{report_time()}] 密码错误，请重新输入账号密码")
                     write_config()
+                    USNM, PSWD = read_config()
                 else:
                     break
             print(
                 f"[INFO][{report_time()}] 用户{res.get('username')} IP({res.get('online_ip')}) 现已登出"
             )
 
-        elif str(args.action) in ["traffic", "流量", "余量", "使用状况"]:
-            user = User(USNM, PSWD)
-            res = user.operation(Action.QUERY)
-            with open(".\\traffic_record.csv") as record:
-                record.write(f"{res.get()},,,")
-            print(f"[Experimental][DT:{res.get('record_date'):s}]")
-            print(f"[Experimental][OT:{res.get('time_online'):d}]")
-            print(f"[Experimental][TR:{res.get('traffic_remain')/1024/1024/1024:.0f}]")
-            print(
-                f"[Experimental][TU:{res.get('traffic_used')/1024/1024/1024:.0f}]")
-            print(f"[Experimental][BM:{res.get('balance_main'):d}]")
-            print(f"[Experimental][BW:{res.get('balance_wallet'):d}]")
-            print(f"[Experimental][TB:{res.get('traffic_balance'):s}]")
-            print(
-                f"[Experimental][EP:{res.get('exceed_part')/1024/1024/1024:.0f}]")
+        # elif str(args.action) in ["traffic", "流量", "余量", "使用状况"]:
+        #     user = User(USNM, PSWD)
+        #     res = user.operation(Action.QUERY)
+        #     with open(".\\traffic_record.csv") as record:
+        #         record.write(f"{res.get()},,,")
+        #     print(f"[Experimental][DT:{res.get('record_date'):s}]")
+        #     print(f"[Experimental][OT:{res.get('time_online'):d}]")
+        #     print(f"[Experimental][TR:{res.get('traffic_remain')/1024/1024/1024:.0f}]")
+        #     print(
+        #         f"[Experimental][TU:{res.get('traffic_used')/1024/1024/1024:.0f}]")
+        #     print(f"[Experimental][BM:{res.get('balance_main'):d}]")
+        #     print(f"[Experimental][BW:{res.get('balance_wallet'):d}]")
+        #     print(f"[Experimental][TB:{res.get('traffic_balance'):s}]")
+        #     print(
+        #         f"[Experimental][EP:{res.get('exceed_part')/1024/1024/1024:.0f}]")
+        elif str(args.action) in ["verify"]:
 
-        elif str(args.action) in ["chkJson"]:
+            user = User(USNM, PSWD)
+            res = user.operation(Action.VERIFY)
+            if len(res) > 1:
+                print(
+                    f"[INFO][{report_time()}] {res}信息验证成功"
+                )
+            else:
+                print(f"[WARN][{report_time()}] 信息错误，使用-a mkjson参数重新填写")
+                exit(14)
+
+        elif str(args.action) in ["chkjson"]:
             read_config()
-            exit(13)
+        elif str(args.action) in ["mkjson"]:
+            write_config()
+        elif str(args.action) in ["clear"]:
+            clear_config()
+
         else:
-            raise UnreachableError(f"[Cannot Resolve Para]{args.action}")
+            exit(13)
+            # raise UnreachableError(f"[Cannot Resolve Para]{args.action}")
 
     except UnreachableError as e:
         print(e)
