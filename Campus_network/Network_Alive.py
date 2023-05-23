@@ -51,17 +51,17 @@ def operation(operation: int):
         case 0:
             command.append("logout")
             prompt_return = subprocess.run(
-                command, capture_output=True, text=True).returncode
+                command, check=True).returncode
         case 1:
             command.append("login")
             prompt_return = subprocess.run(
-                command, capture_output=True, text=True).returncode
+                command, check=True).returncode
         # 备用
         case 2:
             # input("operation:start sp:verify")
             command.append("verify")
             prompt_return = subprocess.run(
-                command, capture_output=True, text=True).returncode
+                command, check=True).returncode
             # print("operation:start sp:verify rtc:",prompt_return)
         case _:
             prompt_return = -1
@@ -72,7 +72,7 @@ def operation(operation: int):
         command.append("mkjson")
         # input("operation:start sp:mkjson")
         prompt_return = subprocess.run(
-            command, capture_output=True, text=True).returncode
+            command, check=True).returncode
         # print("operation:start sp:mkjson rtc:", prompt_return)
     return prompt_return
 
@@ -163,6 +163,7 @@ def main_loop() -> None:
     statistic = {'失败': 0, '成功': 0, '强制': 0, '跳过': 0}
     fail_log = []
     t1, t2 = 0.0, 0.0
+    command = ["ping", PING_TARGET, "-n", "2"]
     while 1:
         try:
             print(
@@ -170,15 +171,16 @@ def main_loop() -> None:
 
             try:
                 t1 = time.time()
-                os.popen(f"ping {PING_TARGET} -n 2").readlines()
+                # stdout=subprocess.DEVNULL:输出到垃圾桶 check=True:阻塞
+                subprocess.run(command, stdout=subprocess.DEVNULL, check=True)
                 t2 = time.time()
 
             except KeyboardInterrupt:
                 statistic['强制'] += 1
                 print(f"[USER][{report_time()}] [Ctrl+C] 强制重登")
-                time.sleep(0.1)
-                sys.stdout.write('\r\033[K')
                 # 去除控制台打印的^C
+                time.sleep(0.2)
+                sys.stdout.write('\r\033[K')
                 relogin()
                 continue
 
@@ -212,7 +214,7 @@ def main_loop() -> None:
 
 
 PING_TARGET = 'bilibili.com'
-VERSION = 'v1.1.0'
+VERSION = 'v1.1.1'
 AIO_PATH = sys.path[0]
 START_TIME = datetime.now()
 welcome_msg = f"""
