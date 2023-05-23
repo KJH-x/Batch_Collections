@@ -37,7 +37,7 @@
 
 ## 运行截图
 
-<img width="674" alt="截图_20230225232209" src="https://user-images.githubusercontent.com/53437291/221365173-5b283882-f14e-444a-8bd4-947ce5e81e31.png">
+<img width="674" alt="截图_20230524004402" src="https://github.com/KJH-x/Batch_Collections/assets/53437291/3f3803ae-7013-446d-95f0-dee4f68d5e6d">
 
 ## 冷知识
 
