@@ -46,13 +46,14 @@ def install_module(module_name: str, mirror_url: str, check_time: int = 15) -> b
             "-m", "pip", "install", module_name,
             "-i", mirror_url,
         ]
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(
+            command, capture_output=True, text=True, check=True)
 
         if result.returncode == 0:
-            print("模块安装成功.")
+            print(f"模块 {module_name} 安装成功.")
             return True
         else:
-            print("模块安装失败.")
+            print(f"模块 {module_name} 安装失败.")
 
         check_time -= 1
 
