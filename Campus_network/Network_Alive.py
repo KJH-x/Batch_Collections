@@ -184,6 +184,10 @@ def main_loop() -> None:
                 relogin()
                 continue
 
+            except subprocess.CalledProcessError:
+                t2 = t1+5
+                pass
+
             if t2-t1 > 4.5:
                 # 超过4.5秒即可判为失败，减少等待时间（单次）
                 statistic['失败'] += 1
@@ -209,6 +213,8 @@ def main_loop() -> None:
             continue
 
         except Exception as e:
+            print()
+            raise e
             input(e)
     return
 
