@@ -8,12 +8,12 @@ import pyperclip
 
 
 paste_data = list(pyperclip.paste().split("\n"))
-remove_lsit = []
+remove_list = []
 
 for item in paste_data:
     if".torrent" not in item:
-        remove_lsit.append(item)
-for item in remove_lsit:
+        remove_list.append(item)
+for item in remove_list:
     paste_data.remove(item)
 
 copy_list = []

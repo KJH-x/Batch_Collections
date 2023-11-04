@@ -51,7 +51,7 @@ def main():
         get_file_list(static_path)
         existed_list = get_file_list(static_path,False)
         print(f"正在查询图片列表")
-        reponse_json = json.loads(
+        response_json = json.loads(
             get_response(
                 url="https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=7&mkt=zh-CN",
                 headers=UA
@@ -59,8 +59,8 @@ def main():
         )
 
         for serial in range(0, 7):
-            pic_url_base = (reponse_json['images'][serial]['urlbase'])
-            pic_copyright = str(reponse_json['images'][serial]['copyright'])
+            pic_url_base = (response_json['images'][serial]['urlbase'])
+            pic_copyright = str(response_json['images'][serial]['copyright'])
             pic_name = re.findall('^([^,，（()]+)', pic_copyright)[0]
             
 
