@@ -6,6 +6,8 @@ import subprocess
 import sys
 from datetime import datetime
 import time
+import logging
+import msvcrt
 
 
 class UnreachableError(SyntaxError):
@@ -32,6 +34,11 @@ def date_log() -> int:
     return int(datetime.now().strftime("%d"))
 
 
+def wait_for_keypress(msg: str):
+    print(msg)
+    msvcrt.getch()
+
+
 def time_convert() -> str:
     """返回：文本：格式化的持续时间
     """
@@ -50,31 +57,55 @@ def operation(operation: int):
     match operation:
         case 0:
             command.append("logout")
-            prompt_return = subprocess.run(
-                command, check=True).returncode
+            try:
+                prompt_return = subprocess.run(
+                    command, check=True)
+                prompt_return_code = prompt_return.returncode
+            except subprocess.CalledProcessError as return_not_zero:
+                logging.info(f"{report_time()}Expected Error: return_not_zero")
+                logging.exception(f"Detail:\n{return_not_zero}")
+                prompt_return_code = return_not_zero.returncode
+
         case 1:
             command.append("login")
-            prompt_return = subprocess.run(
-                command, check=True).returncode
-        # 备用
+            try:
+                prompt_return = subprocess.run(
+                    command, check=True)
+                prompt_return_code = prompt_return.returncode
+            except subprocess.CalledProcessError as return_not_zero:
+                logging.info(f"{report_time()}Expected Error: return_not_zero")
+                logging.exception(f"Detail:\n{return_not_zero}")
+                prompt_return_code = return_not_zero.returncode
+
         case 2:
             # input("operation:start sp:verify")
             command.append("verify")
-            prompt_return = subprocess.run(
-                command, check=True).returncode
-            # print("operation:start sp:verify rtc:",prompt_return)
+            try:
+                prompt_return = subprocess.run(
+                    command, check=True)
+                prompt_return_code = prompt_return.returncode
+            except subprocess.CalledProcessError as return_not_zero:
+                logging.info(f"{report_time()}Expected Error: return_not_zero")
+                logging.exception(f"Detail:\n{return_not_zero}")
+                prompt_return_code = return_not_zero.returncode
+
         case _:
-            prompt_return = -1
-    if prompt_return == 2:
-        input(f"[WARN][{report_time()}]脚本丢失，无法启动，请重新启动脚本并跟随引导重新设置")
+            prompt_return_code = -1
+    if prompt_return_code == 2:
+        wait_for_keypress(
+            f"[WARN][{report_time()}]脚本丢失，无法启动，请重新启动脚本并跟随引导重新设置，按任意键退出")
         exit(1)
-    elif prompt_return == 14:
+    elif prompt_return_code == 14:
         command.append("mkjson")
-        # input("operation:start sp:mkjson")
-        prompt_return = subprocess.run(
-            command, check=True).returncode
-        # print("operation:start sp:mkjson rtc:", prompt_return)
-    return prompt_return
+        try:
+            prompt_return = subprocess.run(
+                command, check=True)
+            prompt_return_code = prompt_return.returncode
+        except subprocess.CalledProcessError as return_not_zero:
+            logging.info(f"{report_time()}Expected Error: return_not_zero")
+            logging.exception(f"Detail:\n{return_not_zero}")
+            prompt_return_code = return_not_zero.returncode
+    return prompt_return_code
 
 
 def relogin(interval=2):
@@ -128,6 +159,10 @@ def entrance_protect() -> bool:
 
 
 def check_component() -> bool:
+    """
+    检查组件的可用性
+    :return: 是否所有组件均可用的布尔值
+    """
     global AIO_PATH
     # flag=True
     if os.access(f"{AIO_PATH}\\AIO_login.py", os.R_OK):
@@ -160,63 +195,69 @@ def check_component() -> bool:
 
 
 def main_loop() -> None:
+    """
+    主循环函数，用于进行ping检测和重连操作
+    """
     statistic = {'失败': 0, '成功': 0, '强制': 0, '跳过': 0}
-    fail_log = []
-    t1, t2 = 0.0, 0.0
-    command = ["ping", PING_TARGET, "-n", "2"]
-    while 1:
+    fail_log = []  # 失败日志列表
+    t1, t2 = 0.0, 0.0  # 用于记录ping操作的开始时间和结束时间
+    command = ["ping", PING_TARGET, "-n", "2"]  # ping命令的参数列表
+    while True:
         try:
             print(
                 f"[INFO][{report_time()}] 正在ping {PING_TARGET}, [Ctrl+C] 强制重登")
-
             try:
-                t1 = time.time()
-                # stdout=subprocess.DEVNULL:输出到垃圾桶 check=True:阻塞
+                t1 = time.time()  # 记录ping操作的开始时间
+                # 运行ping命令，将输出定向到垃圾桶，设置检查结果为阻塞
                 subprocess.run(command, stdout=subprocess.DEVNULL, check=True)
-                t2 = time.time()
+                t2 = time.time()  # 记录ping操作的结束时间
 
-            except KeyboardInterrupt:
+            except KeyboardInterrupt as e:
+                logging.exception(
+                    f"[{report_time()}]An exception occurred: {e}")
                 statistic['强制'] += 1
                 print(f"[USER][{report_time()}] [Ctrl+C] 强制重登")
-                # 去除控制台打印的^C
                 time.sleep(0.2)
-                sys.stdout.write('\r\033[K')
-                relogin()
+                sys.stdout.write('\r\033[K')  # 清除控制台输入的^C
+                relogin()  # 重新登录
                 continue
 
-            except subprocess.CalledProcessError:
-                t2 = t1+5
+            except subprocess.CalledProcessError as e:
+                logging.info(f"{report_time()}Expected Error: return_not_zero")
+                logging.exception(
+                    f"[{report_time()}]An exception occurred: {e}")
+                t2 = t1 + 5
                 pass
 
-            if t2-t1 > 4.5:
-                # 超过4.5秒即可判为失败，减少等待时间（单次）
+            if t2 - t1 > 4.5:  # 如果ping操作超过4.5秒，判定为失败
                 statistic['失败'] += 1
                 fail_log.append([date_log(), report_time()])
                 print(f"[WARN][{report_time()}] ping 判定：离线")
-                relogin()
-                if (statistic["失败"]+statistic["成功"]+statistic["强制"]) % 5 == 0:
-                    summary(statistic, fail_log)
+                relogin()  # 重新登录
 
-            else:
+                if (statistic["失败"] + statistic["成功"] + statistic["强制"]) % 5 == 0:
+                    summary(statistic, fail_log)  # 每5次检测，输出统计信息
+
+            else:  # 如果ping操作未超过4.5秒，判定为成功
                 statistic['成功'] += 1
                 print(f"[INFO][{report_time()}] ping 判定：在线")
-                if (statistic["失败"]+statistic["成功"]+statistic["强制"]) % 5 == 0:
-                    summary(statistic, fail_log)
+
+                if (statistic["失败"] + statistic["成功"] + statistic["强制"]) % 5 == 0:
+                    summary(statistic, fail_log)  # 每5次检测，输出统计信息
                 print(
                     f"[INFO][{report_time()}] 休眠十分钟， [Ctrl+C] 跳过休眠")
-                time.sleep(600)
 
-        except KeyboardInterrupt:
+                time.sleep(600)  # 休眠10分钟（600秒）
+        except KeyboardInterrupt as e:
+            logging.exception(f"[{report_time()}]An exception occurred: {e}")
             statistic['跳过'] += 1
             print(
                 f"[USER][{report_time()}] [Ctrl+C] 跳过休眠")
             continue
-
         except Exception as e:
+            logging.exception(f"[{report_time()}]An exception occurred: {e}")
             print()
             raise e
-            input(e)
-    return
 
 
 PING_TARGET = 'bilibili.com'
@@ -237,5 +278,7 @@ welcome_msg = f"""
 """
 
 if __name__ == "__main__":
+    os.chdir(sys.path[0])
+    logging.basicConfig(filename=".\\NA_1_exceptions.log", level=logging.ERROR)
     while not entrance_protect():
         continue
