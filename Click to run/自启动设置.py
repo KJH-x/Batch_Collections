@@ -56,6 +56,7 @@ if __name__ == '__main__':
             script = os.path.join(current_dir, __file__)
 
             params = " ".join(sys.argv[1:])
+            print("当前非管理员模式，回车后将以管理员模式重启")
             filename = prompt_drag_file()
 
             try:
@@ -98,8 +99,8 @@ if __name__ == '__main__':
                 choice = input(
                     f"{STYLE_NORMAL}文件{STYLE_EMP_ST}未加入{STYLE_NORMAL}任务计划，是否要{STYLE_EMP_OP}加入{STYLE_NORMAL}任务计划？(Y/N)：{STYLE_RESET}")
                 if choice in ['1', 'y', 'Y']:
-                    subprocess.run(['schtasks', '/create', '/tn', taskname, '/sc', 'onstart',
-                                   '/delay', '0005:00', '/tr', f'"{args.file}"'], check=True)
+                    subprocess.run(['schtasks', '/create', '/tn', taskname, '/sc', 'ONLOGON',
+                                   '/delay', '0002:00', '/tr', f'"{args.file}"'], check=True)
                     print(f"{STYLE_EMP_ST}添加成功{STYLE_RESET}")
                     check_task_error(taskname)
                 else:
