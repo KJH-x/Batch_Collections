@@ -8,6 +8,7 @@ if __name__ == "__main__":
 
     # 输入aria2导出的文本文件路径
     print("\n本脚本搭配 Bilibili-Evolved 生成的文件使用\n")
+    instructive_txtfile_path=""
     while 1:
         instructive_txtfile_path = input(
             "请输入文本文件路径(支持拖入): "

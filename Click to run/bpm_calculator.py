@@ -33,6 +33,7 @@ def main():
     print("在合适的节拍位置连续按下 Enter 开始计算 BPM，按下 Ctrl+C 结束程序...")
 
     input("按下 Enter:")
+    ctd = 0.0
     try:
         while True:
             current_timestamp = time.time()

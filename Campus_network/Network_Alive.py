@@ -117,7 +117,7 @@ def relogin(interval=2):
     time.sleep(interval)
 
 
-def summary(statistic: dict[str, str], fail_log: list):
+def summary(statistic: dict[str, int], fail_log: list):
     """打印：文本：刷新时的任务总结
 
     返回：无

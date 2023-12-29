@@ -174,7 +174,7 @@ class User:
         self.ip, self.acid = parse_homepage()
         self.session = Session()
 
-    def operation(self, action: Action) -> dict:
+    def operation(self, action: Action) -> dict[str, str]:
         """检查当前登录情况
 
         Raises:
@@ -193,8 +193,8 @@ class User:
             )
 
         elif action is Action.VERIFY:
-            action=Action.LOGIN
-            
+            action = Action.LOGIN
+
         elif is_logged_in:
             if action is Action.LOGIN:
                 if username is not None:
@@ -218,7 +218,6 @@ class User:
         else:
             raise UnreachableError(
                 f"[WARN][{report_time()}] {action} is not supported.")
-
 
         if params := self._make_params(action):
 
@@ -253,9 +252,9 @@ class User:
         result = dict(json.loads(response.text[6:-1]))
 
         if result.get("challenge"):
-            return result.get("challenge")
+            return str(result.get("challenge"))
         else:
-            return None
+            return ""
 
     def _make_params(self, action: Action) -> dict:
         """制作请求参数
@@ -456,7 +455,7 @@ def xencode(msg, key):
     return lencode(pwd, False)
 
 
-def traffic_query() -> dict:
+def traffic_query() -> dict[str, str]:
     """当且仅当登陆成功后请求此jQuery来获取详细信息
 
     Returns:
@@ -467,11 +466,11 @@ def traffic_query() -> dict:
         r"\{[\s\S]*\}", requests.get(url=query_url).text)[0]))
 
     query_result = {}
-    query_result['time_online'] = user_detail.get('sum_seconds')
-    query_result['traffic_remain'] = user_detail.get('remain_bytes')
-    query_result['traffic_used'] = user_detail.get('sum_bytes')
-    query_result['balance_main'] = user_detail.get('user_balance')
-    query_result['balance_wallet'] = user_detail.get('wallet_balance')
+    query_result['time_online'] = (user_detail.get('sum_seconds'))
+    query_result['traffic_remain'] = (user_detail.get('remain_bytes'))
+    query_result['traffic_used'] = (user_detail.get('sum_bytes'))
+    query_result['balance_main'] = (user_detail.get('user_balance'))
+    query_result['balance_wallet'] = (user_detail.get('wallet_balance'))
 
     today = datetime.now()
     month_days = calendar.monthrange(today.year, today.month)[1]
@@ -513,6 +512,7 @@ def main() -> None:
     for arg in sys.argv:
         sys.argv[sys.argv.index(arg)] = arg.lower()
     args = parser.parse_args()
+    res = dict()
 
     try:
         if str(args.action) in ["login", "登录", "登陆", "上线"]:
