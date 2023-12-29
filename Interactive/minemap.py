@@ -2,22 +2,6 @@ import random
 import os
 
 
-def generate_minefield(rows, cols, mine_percentage):
-    minefield = [[" " for _ in range(cols)] for _ in range(rows)]
-
-    # Place mines randomly
-    total_cells = rows * cols
-    num_mines = int(total_cells * mine_percentage / 100)
-    mine_positions = random.sample(range(total_cells), num_mines)
-
-    for position in mine_positions:
-        row = position // cols
-        col = position % cols
-        minefield[row][col] = 'X'  # 'X' represents a mine
-
-    return [['·' if cell == " " and (r, c) not in mine_positions else cell for c, cell in enumerate(row)] for r, row in enumerate(minefield)]
-
-
 class sp():
     # `|` `-` ` `
     # _A: "|" Least
@@ -85,6 +69,22 @@ class sp_group():
         return self._row_seperate
 
 
+def generate_minefield(rows, cols, mine_percentage):
+    minefield = [[" " for _ in range(cols)] for _ in range(rows)]
+
+    # Place mines randomly
+    total_cells = rows * cols
+    num_mines = int(total_cells * mine_percentage / 100)
+    mine_positions = random.sample(range(total_cells), num_mines)
+
+    for position in mine_positions:
+        row = position // cols
+        col = position % cols
+        minefield[row][col] = 'X'  # 'X' represents a mine
+
+    return [['·' if cell == " " and (r, c) not in mine_positions else cell for c, cell in enumerate(row)] for r, row in enumerate(minefield)]
+
+
 def print_minefield(field, styles: sp_group, seperate=10):
     rows = len(field)
     cols = len(field[0])
@@ -132,7 +132,7 @@ def print_minefield(field, styles: sp_group, seperate=10):
     """
     def ipl(sep: sp):
         return sep.B*rL+sep.BA + sep.B.join(
-            [f"{i:{cL}d}|" if not (i+1) %
+            [f"{i:{cL}d}{sep.A}" if not (i+1) %
              seperate else f"{i:{cL}d}" for i in range(cols)]
         ) + (sep.A if cols % seperate else "")
 
@@ -141,13 +141,13 @@ def print_minefield(field, styles: sp_group, seperate=10):
             sep.B.join(sep.C*cL for _ in range(seperate))
             for _ in range(cols//seperate)
         ) + sep.A + (sep.C + sep.BA*cL)*(cols % seperate) + \
-            (sep.A if cols % seperate else "")
+            (sep.A if cols % seperate else "") + sep.B*(rL+1)
 
     def rcl(sep: sp):
-        return f"{i:{rL}d}"+sep.CAC + (sep.ABC).join(
+        return f"{i:{rL}d}" + sep.CAC + (sep.ABC).join(
             [(sep.C * rL).join(field[i][j:j+seperate])
              for j in range(0, cols, seperate)]
-        ) + sep.A
+        ) + sep.A + f"{i:{rL}d}"
 
     print(ipl(sp_is))
     print(spl(sp_ts))
@@ -160,56 +160,83 @@ def print_minefield(field, styles: sp_group, seperate=10):
         print(rcl(sp_cs))
 
     print(spl(sp_ts))
+    print(ipl(sp_is))
 
 
 def initialize_user_interface(minefield, start_row, start_col) -> list[list[str]]:
+    global rows,cols
     user_interface = [
-        ["·" for _ in range(len(minefield[0]))] for _ in range(len(minefield))]
-    mines = count_surrounding_mines(minefield, start_row, start_col)
-    user_interface[start_row][start_col] = str(mines) if mines > 0 else " "
-    if user_interface[start_row][start_col] == " ":
-        flood_fill(minefield, user_interface, start_row, start_col)
+        ["·" for _ in range(rows)] for _ in range(cols)]
+    for i in range(start_row-1, start_row+2):
+        for j in range(start_col-1, start_col+2):
+            mines = surrounding_mines_int(minefield, i, j)
+            if mines != -1:
+                user_interface[i][j] = str(mines) if mines > 0 else " "
+                if user_interface[i][j] == " ":
+                    flood_fill(minefield, user_interface, i, j)
+
     return user_interface
 
 
-def count_surrounding_mines(minefield, row, col) -> int:
+def surrounding_mines_int(minefield, row, col) -> int:
+    global rows,cols
     mines = 0
-    for i in range(max(0, row - 1), min(len(minefield), row + 2)):
-        for j in range(max(0, col - 1), min(len(minefield[0]), col + 2)):
+    if minefield[row][col] == 'X':
+        return -1
+    for i in range(max(0, row - 1), min(rows, row + 2)):
+        for j in range(max(0, col - 1), min(cols, col + 2)):
             if minefield[i][j] == 'X':
                 mines += 1
     return mines
 
 
-def is_finished(minefield, flag: bool) -> bool:
+def surrounding_mines_str(minefield, row, col) -> str:
+    mines = surrounding_mines_int(minefield, row, col)
+    return str(mines) if mines > 0 else " "
+
+
+def is_finished(minefield: list[list[str]], user_interface: list[list[str]], flag: bool) -> bool:
+    global mine_percentage, flag_check,rows,cols
     if flag:
         return False
     else:
-        for row in minefield:
-            if "·" in row:
+        flag_count = 0
+        flag_check = True
+        for row in range(rows):
+            if "." in user_interface[row]:
                 return True
-        return False
+            else:
+                for col in range(cols):
+                    if user_interface[row][col] == flag:
+                        flag_count += 1
+                        flag_check &= (minefield[row][col] == "X")
+        if flag_count == rows*cols*mine_percentage//100:
+            if flag_check:
+                return False
+            else:
+                return True
+        else:
+            return True
 
 
 def flood_fill(minefield, user_interface, row, col):
-    if 0 <= row < len(minefield) and 0 <= col < len(minefield[0]) and user_interface[row][col] == " ":
-        mines = count_surrounding_mines(minefield, row, col)
-        user_interface[row][col] = str(mines) if mines > 0 else " "
-        if mines == 0:
-            for i in range(max(0, row - 1), min(len(minefield), row + 2)):
-                for j in range(max(0, col - 1), min(len(minefield[0]), col + 2)):
+    global rows,cols
+    if 0 <= row < rows and 0 <= col < cols and user_interface[row][col] == " ":
+        user_interface[row][col] = surrounding_mines_str(minefield, row, col)
+        if surrounding_mines_int(minefield, row, col) == 0:
+            for i in range(max(0, row - 1), min(rows, row + 2)):
+                for j in range(max(0, col - 1), min(cols, col + 2)):
                     ffs(minefield, user_interface, i, j)
         else:
             return
 
 
 def ffs(minefield, user_interface, row, col):
-    if 0 <= row < len(minefield) and 0 <= col < len(minefield[0]) and user_interface[row][col] != " ":
-        mines = count_surrounding_mines(minefield, row, col)
-        user_interface[row][col] = str(mines) if mines > 0 else " "
-        if mines == 0:
-            for i in range(max(0, row - 1), min(len(minefield), row + 2)):
-                for j in range(max(0, col - 1), min(len(minefield[0]), col + 2)):
+    if 0 <= row < rows and 0 <= col < cols and user_interface[row][col] != " ":
+        user_interface[row][col] = surrounding_mines_str(minefield, row, col)
+        if surrounding_mines_int(minefield, row, col) == 0:
+            for i in range(max(0, row - 1), min(rows, row + 2)):
+                for j in range(max(0, col - 1), min(cols, col + 2)):
                     ffs(minefield, user_interface, i, j)
         else:
             return
@@ -225,6 +252,20 @@ def get_options() -> tuple:
     return (rs, cs, mp, sp, ct)
 
 
+DIMAP = """
+Y
+└─X
+
+S, x, y          : 查看
+F, x, y          : 标记
+uF, x, y         : 取消标记
+SPL, size        : 调整分割线
+Cheat            : 看地雷（一次）
+Check            : 立刻结算
+R                : 重开（相同参数）
+Ctrl+C           : 退出
+"""
+
 if __name__ == "__main__":
     os.system("chcp 65001 > nul")
     rows = 20
@@ -233,10 +274,19 @@ if __name__ == "__main__":
     seperate = 10
     cheat = False
     fail_flag = False
-    sp_is = sp("|", " ", " ")
-    sp_ts = sp("|", "_", "_")
-    sp_cs = sp("|", " ", " ")
-    sp_rs = sp("|", "_", "_")
+    reopen_flag = True
+    flag_check = True
+    force_check = False
+    sp_is = sp("│", " ", " ")
+    sp_ts = sp("│", "─", "─")
+    sp_cs = sp("│", " ", " ")
+    sp_rs = sp("│", "─", "─")
+    user_mine_flag = "░"
+    right_mine_flag = "▓"
+    wrong_mine_flag = "▚"
+    question_flag ="?"
+
+    sps = sp_group(sp_is, sp_ts, sp_cs, sp_rs)
 
     print("输入参数，直接回车使用默认值")
     while 1:
@@ -251,52 +301,134 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             exit()
 
-    minefield = generate_minefield(rows, cols, mine_percentage)
+    while reopen_flag:
+        minefield = generate_minefield(rows, cols, mine_percentage)
 
-    if cheat:
-        print("Actual Minefield:")
-        print_minefield(minefield, sp_group(sp_is, sp_ts, sp_cs, sp_rs))
+        if cheat:
+            print("Actual Minefield:")
+            print_minefield(minefield, sps)
 
-    start_row, start_col = random.choice([(i, j) for i in range(
-        1, rows - 1) for j in range(1, cols - 1) if minefield[i][j] != 'X'])
+        start_row, start_col = random.choice(
+            [(i, j) for i in range(1, rows - 1) for j in range(1, cols - 1)
+             if minefield[i][j] != 'X']
+        )
+        user_interface = initialize_user_interface(
+            minefield, start_row, start_col)
 
-    user_interface = initialize_user_interface(minefield, start_row, start_col)
+        print_minefield(user_interface, sps)
+        try:
+            reopen_flag = False
+            while is_finished(minefield, user_interface, fail_flag):
+                print(DIMAP)
+                operation = " "
+                arg1 = arg2 = -1
+                try:
+                    input_string = input("Operators, arg1 [,arg2]:\n").lower()
+                    temp = [[_.strip() for _ in input_string.split(",")],
+                            [_.strip() for _ in input_string.split("|")],
+                            [_.strip() for _ in input_string.split(".")],
+                            [_.strip() for _ in input_string.split(" ")]]
+                    command = max(temp, key=len)
+                    match len(command):
+                        case 3:
+                            operation, arg1, arg2 = command
+                        case 2:
+                            operation, arg1 = command
+                        case 1:
+                            operation = command[0]
+                        case _:
+                            raise ValueError
+                except ValueError:
+                    continue
 
-    print("User Interface:")
-    print_minefield(user_interface, sp_group(sp_is, sp_ts, sp_cs, sp_rs))
-    try:
-        print("s|sweep :查看")
-        print("Ctrl+C  :退出")
-        # print("R,0,0   :重开（相同参数）")
-        while is_finished(user_interface, fail_flag):
-            try:
-                operation, coli, rowi = input(
-                    "operation, col, row:\n").lower().split(",")
-            except ValueError:
-                continue
-            col = int(rowi)
-            row = int(coli)
-            match operation:
-                case "s" | "sweep":
-                    if user_interface[row][col] == "·":
+                match operation:
+                    case "s" | "f" | "uf" | "spl":
+                        col = int(arg1)
+                        row = int(arg2)
+                        if col*row<0 or row>rows or col> cols:
+                            print("错误指令")
+                            continue
+                        if operation == "s":
+                            if user_interface[row][col] == "·":
+                                if minefield[row][col] == "X":
+                                    user_interface[row][col] = "X"
+                                    fail_flag = True
+                                else:
+                                    mines = surrounding_mines_int(
+                                        minefield, row, col)
+                                    user_interface[row][col] = str(
+                                        mines) if mines > 0 else " "
+                            elif user_interface[row][col] == user_mine_flag:
+                                user_interface[row][col] = question_flag
+                            elif user_interface[row][col] == question_flag:
+                                user_interface[row][col] = "·"
+                            
+                            if user_interface[row][col] == " ":
+                                flood_fill(minefield, user_interface, row, col)
+
+                        elif operation == "f":
+                            if user_interface[row][col] == "·":
+                                user_interface[row][col] = user_mine_flag
+
+                        elif operation == "uf":
+                            if user_interface[row][col] == user_mine_flag:
+                                user_interface[row][col] = "·"
+
+                        elif operation == "spl":
+                            seperate = int(arg1)
+
+                        if cheat:
+                            print("Actual Minefield:")
+                            print_minefield(minefield, sps, seperate)
+                        print_minefield(user_interface, sps, seperate)
+
+                    case "cheat":
+                        print_minefield(minefield, sps, seperate)
+
+                    case "check":
+                        force_check = True
+                        break
+
+                    case "r":
+                        reopen_flag = True
+                        break
+
+                    case _:
+                        continue
+
+            def review() -> tuple[int, int, int, float]:
+                _wrong = _miss = _checked = _explored = 0
+                for row in range(rows):
+                    for col in range(cols):
+                        if user_interface[row][col] != "·":
+                            _explored += 1
                         if minefield[row][col] == "X":
-                            print("Hit the mine!")
-                            fail_flag = True
-                        else:
-                            mines = count_surrounding_mines(
-                                minefield, row, col)
-                            user_interface[row][col] = str(
-                                mines) if mines > 0 else " "
-                        if user_interface[row][col] == " ":
-                            flood_fill(minefield, user_interface, row, col)
-                    elif user_interface[row][col] == " ":
-                        flood_fill(minefield, user_interface, row, col)
-            if cheat:
-                print("Actual Minefield:")
-                print_minefield(minefield, sp_group(
-                    sp_is, sp_ts, sp_cs, sp_rs), seperate)
-            print("User Interface:")
-            print_minefield(user_interface, sp_group(
-                sp_is, sp_ts, sp_cs, sp_rs), seperate)
-    except KeyboardInterrupt:
-        print("Ctrl+C Exit.")
+                            if user_interface[row][col] == user_mine_flag:
+                                user_interface[row][col] = right_mine_flag
+                                _checked += 1
+                            else:
+                                user_interface[row][col] = "X"
+                                _miss += 1
+                        if minefield[row][col] == "·":
+                            if user_interface[row][col] == user_mine_flag:
+                                user_interface[row][col] = wrong_mine_flag
+                                _wrong += 1
+                            else:
+                                user_interface[row][col] = surrounding_mines_str(
+                                    minefield, row, col)
+
+                return (_wrong, _miss, _checked, _explored*100/(rows*cols))
+
+            if flag_check == True:
+                print("全部完成")
+            if fail_flag == True:
+                print("踩到地雷，呃呃，菜菜")
+            if force_check == True:
+                print("手动结束")
+            _wrong, _miss, _checked, _explored = review()
+            print(f"选错{_wrong}个，选漏{_miss}个，找对{_checked}个,探索进度:{_explored:2f}%")
+            print_minefield(user_interface, sps, seperate)
+
+        except KeyboardInterrupt:
+            print("Ctrl+C Exit.")
+            exit()
