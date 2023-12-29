@@ -2,7 +2,31 @@ import zlib
 import os
 from concurrent.futures import ThreadPoolExecutor
 import threading
-from builtins import FileNotFoundError,FileExistsError
+from builtins import FileNotFoundError, FileExistsError
+
+
+def get_valid_folder_path():
+    while True:
+        folder_path = input("请输入文件夹路径: ")
+        if os.path.exists(folder_path) and os.path.isdir(folder_path):
+            return folder_path
+        else:
+            print("路径不存在，请重新输入。")
+
+
+def list_files_in_folder(folder_path, include_subfolders=True):
+    file_paths = []
+    for root, dirs, files in os.walk(folder_path):
+        if include_subfolders:
+            for file in files:
+                file_paths.append(os.path.join(root, file))
+        else:
+            for file in files:
+                file_paths.append(os.path.join(root, file))
+            break  # 如果不包括子文件夹，就在第一层循环后退出
+
+    return file_paths
+
 
 def hash_value(file_name: str, block_size: int, file_size: int) -> int:
     with open(file_name, "rb") as openfile:
@@ -39,8 +63,10 @@ def process_file(file_name):
 
 
 if __name__ == '__main__':
-    with open("path_filenames.txt", "r", encoding="utf-8") as file:
-        files = file.read().splitlines()
+    # with open("path_filenames.txt", "r", encoding="utf-8") as file:
+    #     files = file.read().splitlines()
+    files = list_files_in_folder(
+        get_valid_folder_path(), include_subfolders=False)
 
     print(len(files))
     # 设置线程池并发执行
