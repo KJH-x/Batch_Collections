@@ -1,3 +1,4 @@
+# encoding=utf-8
 import random
 import os
 
@@ -70,6 +71,7 @@ class sp_group():
 
 
 def generate_minefield(rows, cols, mine_percentage):
+    global empty_default
     minefield = [[" " for _ in range(cols)] for _ in range(rows)]
 
     # Place mines randomly
@@ -80,9 +82,9 @@ def generate_minefield(rows, cols, mine_percentage):
     for position in mine_positions:
         row = position // cols
         col = position % cols
-        minefield[row][col] = 'X'  # 'X' represents a mine
+        minefield[row][col] = mine_default  # mine_default represents a mine
 
-    return [['·' if cell == " " and (r, c) not in mine_positions else cell for c, cell in enumerate(row)] for r, row in enumerate(minefield)]
+    return [[empty_default if cell == " " and (r, c) not in mine_positions else cell for c, cell in enumerate(row)] for r, row in enumerate(minefield)]
 
 
 def print_minefield(field, styles: sp_group, seperate=10):
@@ -164,9 +166,9 @@ def print_minefield(field, styles: sp_group, seperate=10):
 
 
 def initialize_user_interface(minefield, start_row, start_col) -> list[list[str]]:
-    global rows,cols
+    global rows, cols, user_default
     user_interface = [
-        ["·" for _ in range(rows)] for _ in range(cols)]
+        [user_default for _ in range(rows)] for _ in range(cols)]
     for i in range(start_row-1, start_row+2):
         for j in range(start_col-1, start_col+2):
             mines = surrounding_mines_int(minefield, i, j)
@@ -179,13 +181,13 @@ def initialize_user_interface(minefield, start_row, start_col) -> list[list[str]
 
 
 def surrounding_mines_int(minefield, row, col) -> int:
-    global rows,cols
+    global rows, cols, mine_default
     mines = 0
-    if minefield[row][col] == 'X':
+    if minefield[row][col] == mine_default:
         return -1
     for i in range(max(0, row - 1), min(rows, row + 2)):
         for j in range(max(0, col - 1), min(cols, col + 2)):
-            if minefield[i][j] == 'X':
+            if minefield[i][j] == mine_default:
                 mines += 1
     return mines
 
@@ -196,7 +198,7 @@ def surrounding_mines_str(minefield, row, col) -> str:
 
 
 def is_finished(minefield: list[list[str]], user_interface: list[list[str]], flag: bool) -> bool:
-    global mine_percentage, flag_check,rows,cols
+    global mine_percentage, flag_check, rows, cols, mine_default
     if flag:
         return False
     else:
@@ -209,7 +211,7 @@ def is_finished(minefield: list[list[str]], user_interface: list[list[str]], fla
                 for col in range(cols):
                     if user_interface[row][col] == flag:
                         flag_count += 1
-                        flag_check &= (minefield[row][col] == "X")
+                        flag_check &= (minefield[row][col] == mine_default)
         if flag_count == rows*cols*mine_percentage//100:
             if flag_check:
                 return False
@@ -220,7 +222,7 @@ def is_finished(minefield: list[list[str]], user_interface: list[list[str]], fla
 
 
 def flood_fill(minefield, user_interface, row, col):
-    global rows,cols
+    global rows, cols
     if 0 <= row < rows and 0 <= col < cols and user_interface[row][col] == " ":
         user_interface[row][col] = surrounding_mines_str(minefield, row, col)
         if surrounding_mines_int(minefield, row, col) == 0:
@@ -242,15 +244,32 @@ def ffs(minefield, user_interface, row, col):
             return
 
 
-def get_options() -> tuple:
+def get_options() -> tuple[int, int, int, int, bool, bool]:
     rs = 20 if ((a := int(f'0{input("棋盘长度(默认20):")}')) == 0) else a
     cs = 20 if ((a := int(f'0{input("棋盘宽度(默认20):")}')) == 0) else a
     mp = 10 if ((a := int(f'0{input("埋雷比例(默认10):")}')) == 0) else a
     sp = 10 if ((a := int(f'0{input("分割辅助线宽度(默认10):")}')) == 0) else a
     ct = False if (
         (a := bool(input("地雷视图(默认False):").capitalize())) == False) else a
-    return (rs, cs, mp, sp, ct)
+    fb = False if (
+        (a := bool(input("字符兼容模式(默认False):").capitalize())) == False) else a
+    return (rs, cs, mp, sp, ct, fb)
 
+
+CHECK = """
+UTF-8 字符显示确认
+细阴影："░"，深阴影："▓"，二四象限："▚"，圆角方形："▢"
+制表符等宽测试，以下内容是否严格对齐
+ │░│▓│?│ 
+─┼─┼─┼─┼─
+ │▢│▚│1│
+─┼─┼─┼─┼─
+ │ │-│ │ 
+若以上内容有显示错误，请更换字体如：
+Source Code Pro
+JetBarins Mono
+或启用兼容模式
+"""
 
 DIMAP = """
 Y
@@ -277,22 +296,14 @@ if __name__ == "__main__":
     reopen_flag = True
     flag_check = True
     force_check = False
-    sp_is = sp("│", " ", " ")
-    sp_ts = sp("│", "─", "─")
-    sp_cs = sp("│", " ", " ")
-    sp_rs = sp("│", "─", "─")
-    user_mine_flag = "░"
-    right_mine_flag = "▓"
-    wrong_mine_flag = "▚"
-    question_flag ="?"
+    fallback_flag = False
 
-    sps = sp_group(sp_is, sp_ts, sp_cs, sp_rs)
-
+    print(CHECK)
     print("参数设置，直接回车使用默认值")
     while 1:
         try:
-            rows, cols, mine_percentage, seperate, cheat = get_options()
-            if input(f"{rows} {cols} {mine_percentage} {seperate} {cheat}\n确认使用以上参数吗？(Y/N)").upper() != "Y":
+            rows, cols, mine_percentage, seperate, cheat, fallback_flag = get_options()
+            if input(f"{rows} {cols} {mine_percentage} {seperate} {cheat} {fallback_flag}\n确认使用以上参数吗？(Y/N)").upper() != "Y":
                 continue
             break
         except ValueError:
@@ -300,6 +311,27 @@ if __name__ == "__main__":
             continue
         except KeyboardInterrupt:
             exit()
+
+    if fallback_flag:
+        sp_is = sp("|", " ", " ")
+        sp_ts = sp("|", "─", "─")
+        sp_cs = sp("|", " ", " ")
+        sp_rs = sp("|", "─", "─")
+        sps = sp_group(sp_is, sp_ts, sp_cs, sp_rs)
+
+        user_default, user_mine_flag, mine_default, empty_default = (
+            "O", "F", "X", ".")
+        right_mine_flag, wrong_mine_flag, question_flag = ("√", "B", "?")
+    else:
+        sp_is = sp("│", " ", " ")
+        sp_ts = sp("┼", "─", "─")
+        sp_cs = sp("│", " ", " ")
+        sp_rs = sp("┼", "─", "─")
+        sps = sp_group(sp_is, sp_ts, sp_cs, sp_rs)
+
+        user_default, user_mine_flag, mine_default, empty_default = (
+            "▢", "░", "╳", "·")
+        right_mine_flag, wrong_mine_flag, question_flag = ("▓", "▚", "?")
 
     while reopen_flag:
         minefield = generate_minefield(rows, cols, mine_percentage)
@@ -310,7 +342,7 @@ if __name__ == "__main__":
 
         start_row, start_col = random.choice(
             [(i, j) for i in range(1, rows - 1) for j in range(1, cols - 1)
-             if minefield[i][j] != 'X']
+             if minefield[i][j] != mine_default]
         )
         user_interface = initialize_user_interface(
             minefield, start_row, start_col)
@@ -324,10 +356,8 @@ if __name__ == "__main__":
                 arg1 = arg2 = -1
                 try:
                     input_string = input("Operators, arg1 [,arg2]:\n").lower()
-                    temp = [[_.strip() for _ in input_string.split(",")],
-                            [_.strip() for _ in input_string.split("|")],
-                            [_.strip() for _ in input_string.split(".")],
-                            [_.strip() for _ in input_string.split(" ")]]
+                    temp = [[_.strip() for _ in input_string.split(sp)]
+                            for sp in (",", "|", ".", "。", "，", " ")]
                     command = max(temp, key=len)
                     match len(command):
                         case 3:
@@ -345,13 +375,13 @@ if __name__ == "__main__":
                     case "s" | "f" | "uf" | "spl":
                         col = int(arg1)
                         row = int(arg2)
-                        if col*row<0 or row>rows or col> cols:
+                        if col*row < 0 or row > rows or col > cols:
                             print("错误指令")
                             continue
                         if operation == "s":
-                            if user_interface[row][col] == "·":
-                                if minefield[row][col] == "X":
-                                    user_interface[row][col] = "X"
+                            if user_interface[row][col] == user_default:
+                                if minefield[row][col] == mine_default:
+                                    user_interface[row][col] = mine_default
                                     fail_flag = True
                                 else:
                                     mines = surrounding_mines_int(
@@ -361,18 +391,18 @@ if __name__ == "__main__":
                             elif user_interface[row][col] == user_mine_flag:
                                 user_interface[row][col] = question_flag
                             elif user_interface[row][col] == question_flag:
-                                user_interface[row][col] = "·"
-                            
+                                user_interface[row][col] = user_default
+
                             if user_interface[row][col] == " ":
                                 flood_fill(minefield, user_interface, row, col)
 
                         elif operation == "f":
-                            if user_interface[row][col] == "·":
+                            if user_interface[row][col] == user_default:
                                 user_interface[row][col] = user_mine_flag
 
                         elif operation == "uf":
                             if user_interface[row][col] == user_mine_flag:
-                                user_interface[row][col] = "·"
+                                user_interface[row][col] = user_default
 
                         elif operation == "spl":
                             seperate = int(arg1)
@@ -400,16 +430,16 @@ if __name__ == "__main__":
                 _wrong = _miss = _checked = _explored = 0
                 for row in range(rows):
                     for col in range(cols):
-                        if user_interface[row][col] != "·":
+                        if user_interface[row][col] != user_default:
                             _explored += 1
-                        if minefield[row][col] == "X":
+                        if minefield[row][col] == mine_default:
                             if user_interface[row][col] == user_mine_flag:
                                 user_interface[row][col] = right_mine_flag
                                 _checked += 1
                             else:
-                                user_interface[row][col] = "X"
+                                user_interface[row][col] = mine_default
                                 _miss += 1
-                        if minefield[row][col] == "·":
+                        elif minefield[row][col] == empty_default:
                             if user_interface[row][col] == user_mine_flag:
                                 user_interface[row][col] = wrong_mine_flag
                                 _wrong += 1
