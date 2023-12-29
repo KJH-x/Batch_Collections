@@ -292,7 +292,7 @@ if __name__ == "__main__":
     while 1:
         try:
             rows, cols, mine_percentage, seperate, cheat = get_options()
-            if input(f"{rows} {cols} {mine_percentage} {seperate} {cheat}\n确认吗？(Y/N)").upper() != "Y":
+            if input(f"{rows} {cols} {mine_percentage} {seperate} {cheat}\n确认使用以上参数吗？(Y/N)").upper() != "Y":
                 continue
             break
         except ValueError:
