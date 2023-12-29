@@ -288,7 +288,7 @@ if __name__ == "__main__":
 
     sps = sp_group(sp_is, sp_ts, sp_cs, sp_rs)
 
-    print("输入参数，直接回车使用默认值")
+    print("参数设置，直接回车使用默认值")
     while 1:
         try:
             rows, cols, mine_percentage, seperate, cheat = get_options()
