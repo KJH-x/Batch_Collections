@@ -65,7 +65,7 @@ def main():
             
 
             x1, x2 = map(lambda x: x.end() if x else len(pic_name),
-                        [re.match('.*（', pic_name), re.match('.*\(', pic_name)])
+                        [re.match('.*（', pic_name), re.match('.*(', pic_name)])
 
             pic_name = pic_name[:min(x1, x2)]
 
