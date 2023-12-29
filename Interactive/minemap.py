@@ -274,6 +274,8 @@ JetBarins Mono
 DIMAP = """
 Y
 └─X
+支持的参数分隔符:", | . 。 ，[space]"
+命令大小写不敏感
 
 S, x, y          : 查看
 F, x, y          : 标记
