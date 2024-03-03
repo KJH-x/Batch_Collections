@@ -8,6 +8,9 @@ import requests
 import json
 import shutil
 import time
+from PIL import Image
+from PIL.Image import Image as ImageType
+import numpy as np
 
 
 def read_config(yaml_path):
@@ -29,6 +32,13 @@ def get_response(url, headers):
         raise Exception(f"Request failed: {str(e)}")
 
 
+def checkDir(path):
+    if not os.path.exists(path):
+        print(f"不存在:{path}")
+        os.makedirs(path)
+        print(f"已创建:{path}")
+
+
 def main():
     try:
         os.system("chcp 65001 >nul")
@@ -36,40 +46,27 @@ def main():
         data = read_config(".\\config.yaml")
 
         UA = {'user-agent': data["net"]["user_agent"]}
-        resolution = "1920x1080"
+        resolution = "UHD"
         download_path = data["file"]["temp"]
         static_path = data["file"]["storage"]
 
-        if not os.path.exists(download_path):
-            print(f"不存在:{download_path}")
-            os.makedirs(download_path)
-            print(f"已创建:{download_path}")
-        if not os.path.exists(static_path):
-            print(f"不存在:{static_path}")
-            os.makedirs(static_path)
-            print(f"已创建:{static_path}")
-        get_file_list(static_path)
-        existed_list = get_file_list(static_path,False)
-        print(f"正在查询图片列表")
-        response_json = json.loads(
-            get_response(
-                url="https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=7&mkt=zh-CN",
-                headers=UA
-                ).text
-        )
+        checkDir(download_path)
+        checkDir(static_path)
+
+        getFileList(static_path)
+        existed_list = getFileList(download_path, False)
+        print(f"正在向必应查询图片列表")
+        response_json_zh = dict(json.loads(
+            get_response(url=request_url,headers=UA).text
+        ))
+        response_json = {**response_json_zh}
 
         for serial in range(0, 7):
             pic_url_base = (response_json['images'][serial]['urlbase'])
-            pic_copyright = str(response_json['images'][serial]['copyright'])
-            pic_name = re.findall('^([^,，（()]+)', pic_copyright)[0]
-            
+            # URLBASE: '/th?id=OHR.{NAME}_ZH-CN{NUMBERS}'
+            pattern = r"(.[A-Za-z]+_)"
+            pic_name = str(re.findall(pattern, pic_url_base)[0]).strip("._")
 
-            x1, x2 = map(lambda x: x.end() if x else len(pic_name),
-                        [re.match('.*（', pic_name), re.match('.*(', pic_name)])
-
-            pic_name = pic_name[:min(x1, x2)]
-
-            pic_name = re.sub("[ 　（）,，]", "", pic_name)
             url = f"http://www.bing.com{pic_url_base}_{resolution}.jpg"
             pic_save_path = f"{download_path}\\{pic_name}.jpg"
             if pic_name in existed_list:
@@ -77,8 +74,8 @@ def main():
             else:
                 print(f"正在下载：{pic_name}")
                 saveImg(url, pic_save_path)
-        xcopy(fromTrack=download_path, toTrack=static_path)
-        print("All Done!")
+        adjustAndCopy(copyFrom=download_path, copyTo=static_path)
+        print("全部完成!")
         time.sleep(3)
     except Exception:
         input(print_exc())
@@ -96,17 +93,7 @@ def saveImg(imgUrl, saveAs):
         return 0
 
 
-def get_file_list(folder_path: str, flag=True) -> list:
-    """
-    Get a list of file names in the folder_path.
-
-    Args:
-        folder_path (str): the folder path
-        flag (bool): if True, the file name will contain the extension, otherwise not
-
-    Returns:
-        list: a list of file names
-    """
+def getFileList(folder_path: str, flag=True) -> list:
     if not os.path.exists(folder_path):
         return []
 
@@ -117,20 +104,32 @@ def get_file_list(folder_path: str, flag=True) -> list:
         return [os.path.splitext(file_name)[0] for file_name in file_list]
 
 
-def xcopy(fromTrack, toTrack):
-    fromTrack = os.path.abspath(fromTrack)
-    toTrack = os.path.abspath(toTrack)
-    if not os.path.exists(fromTrack):
-        os.makedirs(fromTrack)
-    if not os.path.exists(toTrack):
-        os.makedirs(toTrack)
-    file_list_fr = get_file_list(fromTrack)
-    file_list_to = get_file_list(toTrack)
+def adjustAndCopy(copyFrom, copyTo):
+    copyFrom = os.path.abspath(copyFrom)
+    copyTo = os.path.abspath(copyTo)
+    if not os.path.exists(copyFrom):
+        os.makedirs(copyFrom)
+    if not os.path.exists(copyTo):
+        os.makedirs(copyTo)
+    file_list_fr = getFileList(copyFrom)
+    file_list_to = getFileList(copyTo)
     copy_list = [x for x in file_list_fr if x not in file_list_to]
     for file_name in copy_list:
-        if not os.path.exists(os.path.join(toTrack, file_name)):
-            shutil.copy(os.path.join(fromTrack, file_name), toTrack)
+        if not os.path.exists(os.path.join(copyTo, file_name)):
+            # shutil.copy(os.path.join(copyFrom, file_name), copyTo)
+            decrease_brightness(
+                os.path.join(copyFrom, file_name), 0.2
+            ).save(os.path.join(copyTo, file_name))
+
+
+def decrease_brightness(file_path: str, intensity: float) -> ImageType:
+    h, s, v = Image.open(file_path).convert("HSV").split()
+    v = Image.fromarray(
+        np.clip(np.array(v) * intensity, 0, 255).astype(np.uint8)
+    )
+    return Image.merge("HSV", (h, s, v)).convert("RGB")
 
 
 if __name__ == '__main__':
+    request_url = "https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=7&mkt=zh-CN&uhd=1&uhdwidth=3840&uhdheight=2160"
     main()
