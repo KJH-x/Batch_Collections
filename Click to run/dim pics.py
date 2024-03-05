@@ -1,8 +1,8 @@
+# pyright: reportUnknownMemberType=false
 import os
-from PIL import Image
-from PIL.Image import Image as ImageType
+from PIL import Image # type: ignore
+from PIL.Image import Image as ImageType # type: ignore
 import numpy as np
-
 from multiprocessing import Pool
 
 
@@ -17,9 +17,9 @@ def decrease_brightness(file_path: str, intensity: float) -> ImageType:
 def process_image(file_path: str, intensity: float):
     try:
         # Open the image
-        image = Image.open(file_path)
+        # image = Image.open(file_path)
         # Decrease brightness and save
-        decrease_brightness(image, intensity).save(file_path)
+        decrease_brightness(file_path, intensity).save(file_path)
         print("Image processed:", file_path)
     except Exception as e:
         print("Error processing image:", file_path)
@@ -39,7 +39,7 @@ def process_directory(directory: str, intensity: float):
     ]
     # Use Pool of workers to parallelize the processing
     with Pool(processes=16) as pool:
-        pool.map(process_image, (paras, intensity))
+        pool.starmap(process_image, paras)
 
 
 if __name__ == "__main__":
