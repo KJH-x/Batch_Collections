@@ -1,6 +1,7 @@
 QR_maker
 config.yaml
 bit_user_detail.json
+get_bing.json
 *.svg
 *.txt
 *.png
