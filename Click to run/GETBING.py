@@ -173,7 +173,7 @@ def main():
             # Hint: URLBASE: '/th?id=OHR.{NAME}_ZH-CN{NUMBERS}'
             # 请求返回中另有中文图片版权信息，可自行查看更改，由于匹配规则复杂，此处弃用
             pic_url_base = (response_json['images'][serial]['urlbase'])
-            pattern = r"(.[A-Za-z]+_)"
+            pattern = r"(.[A-Za-z0-9]+_)"
             pic_name = str(re.findall(pattern, pic_url_base)[0]).strip("._")
 
             # 下载、保存图片
