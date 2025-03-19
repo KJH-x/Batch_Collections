@@ -1,8 +1,10 @@
 QR_maker
 config.yaml
-bit_user_detail.json
-get_bing.json
+*.json
 *.svg
 *.txt
 *.png
 test/
+model/
+fonts/
+p-*py

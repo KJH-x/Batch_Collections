@@ -1,11 +1,12 @@
-import time
-import win32gui
 import os
 import sys
+import time
+
+import win32gui
 
 
 class WindowInfo:
-    def __init__(self, hwnd: int, window_text: str, class_name: str, rect: tuple) -> None:
+    def __init__(self, hwnd: int, window_text: str, class_name: str, rect: tuple[int, int, int, int]) -> None:
         self.hwnd = hex(hwnd)
         self.window_text = window_text
         self.class_name = class_name
@@ -16,9 +17,9 @@ class WindowInfo:
 
 
 def get_visible_window() -> list[WindowInfo]:
-    visible_window = []
+    visible_window: list[WindowInfo] = []
 
-    def enum_windows_proc(hwnd, lparam):
+    def enum_windows_proc(hwnd: int, lparam: ...):
         if win32gui.IsWindowVisible(hwnd):
             window_text = win32gui.GetWindowText(hwnd)
             class_name = win32gui.GetClassName(hwnd)
@@ -30,7 +31,7 @@ def get_visible_window() -> list[WindowInfo]:
     return visible_window
 
 
-def abbr_str(s: str, max_length=25) -> str:
+def abbr_str(s: str, max_length: int = 25) -> str:
     if len(s) <= max_length:
         return s
     else:
@@ -44,19 +45,22 @@ def refresh_window_list():
         if info.class_name == "OrpheusBrowserHost":
             song_name, artists = info.window_text.split(" - ", 1)
             song_name = abbr_str(song_name)
-            artists = "/ ".join([abbr_str(x) for x in artists.split("/")])
+            artists = "、".join([abbr_str(x) for x in artists.split("/")])
             break
     present = f"正在播放: {song_name}, {artists}"
     if last != present:
-        print(song_name, artists)
+        print(present)
         with open(".\\netease_now_playing.txt", mode="w", encoding="utf-8") as file:
-            file.write(f"正在播放: 曲名{song_name}, 艺术家{artists}")
+            file.write(f"正在播放:[{artists}]《{song_name}》")
     last = present
 
 
 if __name__ == "__main__":
-    last = present = song_name = artists = ""
-    os.chdir(sys.path[0])
-    while True:
-        refresh_window_list()
-        time.sleep(3)
+    try:
+        last = present = song_name = artists = ""
+        os.chdir(sys.path[0])
+        while True:
+            refresh_window_list()
+            time.sleep(.5)
+    except KeyboardInterrupt:
+        exit(0)

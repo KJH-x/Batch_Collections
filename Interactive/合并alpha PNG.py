@@ -1,5 +1,6 @@
 from PIL import Image
 
+
 def merge_images(color_image_path, alpha_image_path, output_image_path):
     # 打开两个图像
     color_img = Image.open(color_image_path)

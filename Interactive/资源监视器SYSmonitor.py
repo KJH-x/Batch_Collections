@@ -136,7 +136,7 @@ def fdata(data: int,
 if __name__ == "__main__":
     debug = 0
     monitor_qbit = True
-    float
+    # float
     interval = 2.5
     if not debug:
         os.system("title SMAC| color 0A")
